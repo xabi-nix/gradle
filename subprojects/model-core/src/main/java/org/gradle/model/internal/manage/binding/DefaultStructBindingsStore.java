@@ -29,7 +29,6 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import org.gradle.api.Named;
 import org.gradle.internal.Cast;
 import org.gradle.internal.UncheckedException;
-import org.gradle.model.Managed;
 import org.gradle.model.Unmanaged;
 import org.gradle.model.internal.manage.schema.*;
 import org.gradle.model.internal.manage.schema.extract.ModelSchemaUtils;
@@ -121,22 +120,9 @@ public class DefaultStructBindingsStore implements StructBindingsStore {
         walkTypeHierarchy(type.getConcreteClass(), new ModelSchemaUtils.TypeVisitor<T>() {
             @Override
             public void visitType(Class<? super T> type) {
-                if (type.isAnnotationPresent(Managed.class)) {
-                    validateManagedType(problems, type);
-                }
                 validateType(problems, type);
             }
         });
-    }
-
-    private static void validateManagedType(StructBindingValidationProblemCollector problems, Class<?> typeClass) {
-        if (!typeClass.isInterface() && !Modifier.isAbstract(typeClass.getModifiers())) {
-            problems.add("Must be defined as an interface or an abstract class.");
-        }
-
-        if (typeClass.getTypeParameters().length > 0) {
-            problems.add("Cannot be a parameterized type.");
-        }
     }
 
     private static void validateType(StructBindingValidationProblemCollector problems, Class<?> typeClass) {
@@ -153,6 +139,14 @@ public class DefaultStructBindingsStore implements StructBindingsStore {
 
         ensureNoProtectedOrPrivateMethods(problems, methods);
         ensureNoDefaultMethods(problems, typeClass, methods);
+
+        if (!typeClass.isInterface() && !Modifier.isAbstract(typeClass.getModifiers())) {
+            problems.add("Must be defined as an interface or an abstract class.");
+        }
+
+        if (typeClass.getTypeParameters().length > 0) {
+            problems.add("Cannot be a parameterized type.");
+        }
     }
 
     private static Constructor<?> findCustomConstructor(Class<?> typeClass) {
@@ -444,17 +438,7 @@ public class DefaultStructBindingsStore implements StructBindingsStore {
             return;
         }
 
-        // Only managed implementation and value types are allowed as a managed property type unless marked with @Unmanaged
-        boolean isAllowedPropertyTypeOfManagedType = propertySchema instanceof ManagedImplSchema
-            || propertySchema instanceof ScalarValueSchema;
-
         ModelType<?> propertyType = propertySchema.getType();
-
-        if (isAllowedPropertyTypeOfManagedType && isDeclaredAsHavingUnmanagedType) {
-            extractionContext.add(propertyName, String.format("it is marked as @Unmanaged, but is of @Managed type '%s'; please remove the @Managed annotation",
-                    propertyType.getDisplayName()
-            ));
-        }
 
         if (!writable && isDeclaredAsHavingUnmanagedType) {
             extractionContext.add(propertyName, "it must not be read only, because it is marked as @Unmanaged");
