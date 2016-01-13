@@ -274,6 +274,18 @@ class IdeaModule {
     String jdkName
 
     /**
+     * The java language level for this module.
+     * Pass a valid Java version number (e.g. '1.5') or IDEA language level (e.g. 'JDK_1_5').
+     * <p>
+     * See the examples in the docs for {@link IdeaModule}.
+     */
+    IdeaLanguageLevel languageLevel
+
+    void setLanguageLevel(Object languageLevel) {
+        this.languageLevel = new IdeaLanguageLevel(languageLevel)
+    }
+
+    /**
      * See {@link #iml(Closure) }
      */
     final IdeaModuleIml iml
@@ -352,7 +364,7 @@ class IdeaModule {
         Set<Dependency> dependencies = resolveDependencies()
 
         xmlModule.configure(contentRoot, sourceFolders, testSourceFolders, generatedSourceFolders, excludeFolders,
-                getInheritOutputDirs(), outputDir, testOutputDir, dependencies, getJdkName())
+                inheritOutputDirs, outputDir, testOutputDir, dependencies, jdkName, languageLevel.toString())
 
         iml.whenMerged.execute(xmlModule)
     }

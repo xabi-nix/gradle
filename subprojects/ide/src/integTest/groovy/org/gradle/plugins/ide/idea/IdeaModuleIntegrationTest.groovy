@@ -71,6 +71,7 @@ idea {
         testOutputDir = file('muchBetterTestOutputDir')
 
         jdkName = '1.6'
+        languageLevel = 1.5
 
         iml {
             generateTo = file('customImlFolder')
@@ -98,6 +99,7 @@ idea {
         assert iml.component.output.@url.text().endsWith('muchBetterOutputDir')
         assert iml.component."output-test".@url.text().endsWith('muchBetterTestOutputDir')
         assert iml.component.orderEntry.any { it.@type.text() == 'jdk' && it.@jdkName.text() == '1.6' }
+        assert iml.component.any { it.@name.text() == 'NewModuleRootManager' && it.@LANGUAGE_LEVEL.text() == '1.5' }
         assert iml.someInterestingConfiguration.text() == 'hey!'
     }
 

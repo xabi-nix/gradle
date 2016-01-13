@@ -73,6 +73,8 @@ class Module extends XmlPersistableConfigurationObject {
 
     String jdkName
 
+    IdeaLanguageLevel languageLevel
+
     private final PathFactory pathFactory
 
     Module(XmlTransformer withXmlActions, PathFactory pathFactory) {
@@ -86,6 +88,7 @@ class Module extends XmlPersistableConfigurationObject {
 
     @Override protected void load(Node xml) {
         readJdkFromXml()
+        readLanguageLevelFromXml()
         readSourceAndExcludeFolderFromXml()
         readInheritOutputDirsFromXml()
         readOutputDirsFromXml()
@@ -95,6 +98,13 @@ class Module extends XmlPersistableConfigurationObject {
     private readJdkFromXml() {
         def jdk = findOrderEntries().find { it.@type == 'jdk' }
         jdkName = jdk ? jdk.@jdkName : INHERITED
+    }
+
+    private readLanguageLevelFromXml() {
+        def level = findNewModuleRootManager().@LANGUAGE_LEVEL
+        if (level) {
+            languageLevel = new IdeaLanguageLevel(level)
+        }
     }
 
     private readSourceAndExcludeFolderFromXml() {
@@ -148,7 +158,7 @@ class Module extends XmlPersistableConfigurationObject {
     }
 
     protected def configure(Path contentPath, Set sourceFolders, Set testSourceFolders, Set generatedSourceFolders, Set excludeFolders,
-                            Boolean inheritOutputDirs, Path outputDir, Path testOutputDir, Set dependencies, String jdkName) {
+                            Boolean inheritOutputDirs, Path outputDir, Path testOutputDir, Set dependencies, String jdkName, IdeaLanguageLevel languageLevel) {
         this.contentPath = contentPath
         this.sourceFolders.addAll(sourceFolders)
         this.excludeFolders.addAll(excludeFolders)
@@ -169,10 +179,12 @@ class Module extends XmlPersistableConfigurationObject {
         } else {
             this.jdkName = Module.INHERITED
         }
+        this.languageLevel = languageLevel
     }
 
     @Override protected void store(Node xml) {
         addJdkToXml()
+        addLanguageLevelToXml()
         setContentURL()
         removeSourceAndExcludeFolderFromXml()
         addSourceAndExcludeFolderToXml()
@@ -200,6 +212,12 @@ class Module extends XmlPersistableConfigurationObject {
                 findNewModuleRootManager().remove(moduleJdk)
             }
             findNewModuleRootManager().appendNode("orderEntry", [type: "inheritedJdk"])
+        }
+    }
+
+    private addLanguageLevelToXml() {
+        if (languageLevel) {
+            findNewModuleRootManager().@LANGUAGE_LEVEL = languageLevel.level
         }
     }
 
@@ -320,8 +338,11 @@ class Module extends XmlPersistableConfigurationObject {
         if (outputDir != module.outputDir) { return false }
         if (sourceFolders != module.sourceFolders) { return false }
         if (generatedSourceFolders != module.generatedSourceFolders) { return false }
+        if (inheritOutputDirs != module.inheritOutputDirs) { return false }
         if (testOutputDir != module.testOutputDir) { return false }
         if (testSourceFolders != module.testSourceFolders) { return false }
+        if (jdkName != module.jdkName) { return false }
+        if (languageLevel != module.languageLevel) { return false }
 
         return true
     }
@@ -337,6 +358,8 @@ class Module extends XmlPersistableConfigurationObject {
         result = 31 * result + outputDir.hashCode()
         result = 31 * result + testOutputDir.hashCode()
         result = 31 * result + (dependencies != null ? dependencies.hashCode() : 0)
+        result = 31 * result + (jdkName != null ? jdkName.hashCode() : 0)
+        result = 31 * result + (languageLevel != null ? languageLevel.hashCode() : 0)
         return result
     }
 
@@ -351,6 +374,8 @@ class Module extends XmlPersistableConfigurationObject {
                 ", inheritOutputDirs=" + inheritOutputDirs +
                 ", outputDir=" + outputDir +
                 ", testOutputDir=" + testOutputDir +
+                ", jdkName=" + jdkName +
+                ", languageLevel=" + languageLevel +
                 '}'
     }
 }

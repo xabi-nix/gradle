@@ -16,11 +16,13 @@
 
 package org.gradle.plugins.ide.idea.model
 
+import groovy.transform.EqualsAndHashCode
 import org.gradle.api.JavaVersion
 
 /**
  * Java language level used by IDEA projects.
  */
+@EqualsAndHashCode
 class IdeaLanguageLevel {
 
     String level
