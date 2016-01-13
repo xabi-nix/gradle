@@ -22,6 +22,7 @@ import org.gradle.api.Task;
 import org.gradle.api.artifacts.dsl.RepositoryHandler;
 import org.gradle.api.internal.artifacts.ArtifactDependencyResolver;
 import org.gradle.api.internal.artifacts.repositories.ResolutionAwareRepository;
+import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.testing.Test;
 import org.gradle.api.tasks.testing.TestTaskReports;
 import org.gradle.internal.Transformers;
@@ -103,13 +104,13 @@ public class JvmTestSuites {
         });
     }
 
-    public static void createJvmTestSuiteTasks(final ModelMap<Task> tasks,
+    public static void createJvmTestSuiteTasks(final TaskContainer tasks,
                                                 final JvmTestSuiteBinarySpec binary,
                                                 final JvmAssembly jvmAssembly,
                                                 final ServiceRegistry registry,
                                                 final ModelSchemaStore schemaStore,
                                                 final File buildDir) {
-        tasks.create(testTaskNameFor(binary), Test.class, new Action<Test>() {
+        Test testTask = tasks.create(testTaskNameFor(binary), Test.class, new Action<Test>() {
             @Override
             public void execute(final Test test) {
                 test.setGroup(LifecycleBasePlugin.VERIFICATION_GROUP);
@@ -120,7 +121,6 @@ public class JvmTestSuites {
                 JvmComponentSpec testedComponent = testedComponentName != null ? getTestedComponent(registry, testedComponentName) : null;
                 test.setClasspath(runtimeClasspathForTestBinary(binary, testedComponent, registry, schemaStore));
                 configureReports(test);
-                binary.getTasks().add(test);
             }
 
             private void configureReports(Test test) {
@@ -135,6 +135,8 @@ public class JvmTestSuites {
                 test.setBinResultsDir(binDir);
             }
         });
+
+        binary.getTasks().add(testTask);
     }
 
     public static Collection<JvmBinarySpec> testedBinariesOf(ServiceRegistry registry, JvmTestSuiteSpec testSuite) {
@@ -158,6 +160,18 @@ public class JvmTestSuites {
             return null;
         }
         return jvmComponentSpec;
+    }
+
+    public static void attachBinariesToCheckLifecycle(ModelMap<Task> tasks, final ModelMap<? extends JvmTestSuiteBinarySpec> binaries) {
+        // TODO - binaries aren't an input to this rule, they're an input to the action
+        tasks.named(LifecycleBasePlugin.CHECK_TASK_NAME, new Action<Task>() {
+            @Override
+            public void execute(Task checkTask) {
+                for (JvmTestSuiteBinarySpec testBinary : binaries) {
+                    checkTask.dependsOn(testBinary.getTasks().getTest());
+                }
+            }
+        });
     }
 
     private static BinaryNamingScheme namingSchemeFor(JvmTestSuiteSpec testSuiteSpec, JvmBinarySpec testedBinary, List<JavaPlatform> selectedPlatforms, JavaPlatform platform) {

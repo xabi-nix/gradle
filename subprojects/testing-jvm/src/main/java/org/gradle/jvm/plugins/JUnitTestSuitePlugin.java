@@ -17,6 +17,7 @@ package org.gradle.jvm.plugins;
 
 import com.beust.jcommander.internal.Lists;
 import org.gradle.api.*;
+import org.gradle.api.tasks.TaskContainer;
 import org.gradle.internal.service.ServiceRegistry;
 import org.gradle.jvm.internal.JvmAssembly;
 import org.gradle.jvm.internal.WithDependencies;
@@ -88,7 +89,7 @@ public class JUnitTestSuitePlugin implements Plugin<Project> {
         }
 
         @Mutate
-        public void createTestSuiteTasks(final ModelMap<Task> tasks,
+        public void createTestSuiteTasks(final TaskContainer tasks,
                                   final ModelMap<JUnitTestSuiteBinarySpec> binaries,
                                   final @Path("buildDir") File buildDir,
                                   final ServiceRegistry registry,
@@ -119,6 +120,11 @@ public class JUnitTestSuitePlugin implements Plugin<Project> {
                     setDependenciesOf(jUnitTestSuiteBinarySpec, dependencies);
                 }
             });
+        }
+
+        @Mutate
+        void attachBinariesToCheckLifecycle(ModelMap<Task> tasks, final ModelMap<JUnitTestSuiteBinarySpec> binaries) {
+            JvmTestSuites.attachBinariesToCheckLifecycle(tasks, binaries);
         }
 
         private void setDependenciesOf(JUnitTestSuiteBinarySpec binary, DependencySpecContainer dependencies) {
