@@ -230,28 +230,26 @@ public class NativeComponentModelPlugin implements Plugin<ProjectInternal> {
         }
 
         @Mutate
-        void configurePreCompiledHeaderCompileTasks(final TaskContainer tasks, BinaryContainer binaries, final LanguageTransformContainer languageTransforms, final ServiceRegistry serviceRegistry) {
-            for (final NativeBinarySpecInternal nativeBinarySpec : binaries.withType(NativeBinarySpecInternal.class)) {
-                for (final PchEnabledLanguageTransform<?> transform : languageTransforms.withType(PchEnabledLanguageTransform.class)) {
-                    nativeBinarySpec.getInputs().withType(transform.getSourceSetType(), new Action<LanguageSourceSet>() {
-                        @Override
-                        public void execute(final LanguageSourceSet languageSourceSet) {
-                            final DependentSourceSet dependentSourceSet = (DependentSourceSet) languageSourceSet;
-                            if (dependentSourceSet.getPreCompiledHeader() != null) {
-                                nativeBinarySpec.addPreCompiledHeaderFor(dependentSourceSet);
-                                final SourceTransformTaskConfig pchTransformTaskConfig = transform.getPchTransformTask();
-                                String pchTaskName = String.format("%s%s%sPreCompiledHeader", pchTransformTaskConfig.getTaskPrefix(), StringUtils.capitalize(nativeBinarySpec.getProjectScopedName()), StringUtils.capitalize(dependentSourceSet.getName()));
-                                Task pchTask = tasks.create(pchTaskName, pchTransformTaskConfig.getTaskType(), new Action<DefaultTask>() {
-                                    @Override
-                                    public void execute(DefaultTask task) {
-                                        pchTransformTaskConfig.configureTask(task, nativeBinarySpec, dependentSourceSet, serviceRegistry);
-                                    }
-                                });
-                                nativeBinarySpec.getTasks().add(pchTask);
-                            }
+        void configurePreCompiledHeaderCompileTasks(final TaskContainer tasks, @Each final NativeBinarySpecInternal nativeBinarySpec, final LanguageTransformContainer languageTransforms, final ServiceRegistry serviceRegistry) {
+            for (final PchEnabledLanguageTransform<?> transform : languageTransforms.withType(PchEnabledLanguageTransform.class)) {
+                nativeBinarySpec.getInputs().withType(transform.getSourceSetType(), new Action<LanguageSourceSet>() {
+                    @Override
+                    public void execute(final LanguageSourceSet languageSourceSet) {
+                        final DependentSourceSet dependentSourceSet = (DependentSourceSet) languageSourceSet;
+                        if (dependentSourceSet.getPreCompiledHeader() != null) {
+                            nativeBinarySpec.addPreCompiledHeaderFor(dependentSourceSet);
+                            final SourceTransformTaskConfig pchTransformTaskConfig = transform.getPchTransformTask();
+                            String pchTaskName = String.format("%s%s%sPreCompiledHeader", pchTransformTaskConfig.getTaskPrefix(), StringUtils.capitalize(nativeBinarySpec.getProjectScopedName()), StringUtils.capitalize(dependentSourceSet.getName()));
+                            Task pchTask = tasks.create(pchTaskName, pchTransformTaskConfig.getTaskType(), new Action<DefaultTask>() {
+                                @Override
+                                public void execute(DefaultTask task) {
+                                    pchTransformTaskConfig.configureTask(task, nativeBinarySpec, dependentSourceSet, serviceRegistry);
+                                }
+                            });
+                            nativeBinarySpec.getTasks().add(pchTask);
                         }
-                    });
-                }
+                    }
+                });
             }
         }
 
@@ -309,11 +307,9 @@ public class NativeComponentModelPlugin implements Plugin<ProjectInternal> {
          * Can't use @BinaryTasks because the binary is not _built-by_ the install task, but it is associated with it. Rule is called multiple times, so need to check for task existence before
          * creating.
          */
-        @Defaults
-        void createInstallTasks(ModelMap<Task> tasks, BinaryContainer binaries) {
-            for (NativeExecutableBinarySpecInternal binary : binaries.withType(NativeExecutableBinarySpecInternal.class).values()) {
-                NativeComponents.createInstallTask(binary, binary.getInstallation(), binary.getExecutable(), binary.getNamingScheme());
-            }
+        @Mutate
+        void createInstallTasks(ModelMap<Task> tasks, @Each NativeExecutableBinarySpecInternal binary) {
+            NativeComponents.createInstallTask(binary, binary.getInstallation(), binary.getExecutable(), binary.getNamingScheme());
         }
 
         @Finalize

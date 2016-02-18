@@ -127,5 +127,9 @@ public interface ModelRegistry {
      */
     ModelRegistry configureMatching(ModelSpec spec, Class<? extends RuleSource> rules);
 
+    /**
+     */
+    ModelRegistry configureMatchingInput(ModelSpec spec, ModelActionRole role, ModelAction action, int inputIndex);
+
     MutableModelNode getRoot();
 }

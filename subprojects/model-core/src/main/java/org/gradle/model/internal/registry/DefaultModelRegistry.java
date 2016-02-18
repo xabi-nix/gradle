@@ -123,6 +123,53 @@ public class DefaultModelRegistry implements ModelRegistryInternal {
     }
 
     @Override
+    public ModelRegistry configureMatchingInput(final ModelSpec spec, final ModelActionRole role, final ModelAction action, final int inputIndex) {
+        final List<? extends ModelReference<?>> inputs = action.getInputs();
+        if (inputs.size() <= inputIndex) {
+            throw new IndexOutOfBoundsException(String.format("Action '%s' has only %d inputs, unable to get input with index %d", action.getDescriptor(), action.getInputs().size(), inputIndex));
+        }
+        final ModelType<?> inputType = inputs.get(inputIndex).getType();
+        registerListener(new DelegatingListener(spec) {
+            @Override
+            public String toString() {
+                return "configure matching input " + spec + " using " + action.getDescriptor();
+            }
+
+            @Override
+            public void onDiscovered(final ModelNodeInternal node) {
+                if (node.canBeViewedAs(inputType) && spec.matches(node)) {
+                    bind(action.getSubject(), role, new ModelAction() {
+                        @Override
+                        public ModelReference<?> getSubject() {
+                            return action.getSubject();
+                        }
+
+                        @Override
+                        public void execute(MutableModelNode modelNode, List<ModelView<?>> inputs) {
+                            action.execute(modelNode, inputs);
+                        }
+
+                        @Override
+                        public List<? extends ModelReference<?>> getInputs() {
+                            List<ModelReference<?>> newInputs = Lists.newArrayListWithCapacity(inputs.size());
+                            newInputs.addAll(inputs.subList(0, inputIndex));
+                            newInputs.add(ModelReference.of(node.getPath(), inputType));
+                            newInputs.addAll(inputs.subList(inputIndex + 1, inputs.size()));
+                            return newInputs;
+                        }
+
+                        @Override
+                        public ModelRuleDescriptor getDescriptor() {
+                            return action.getDescriptor().append(node.getPath().toString());
+                        }
+                    });
+                }
+            }
+        });
+        return this;
+    }
+
+    @Override
     public ModelRegistry configureMatching(final ModelSpec predicate, final Class<? extends RuleSource> rules) {
         registerListener(new DelegatingListener(predicate) {
             @Override
