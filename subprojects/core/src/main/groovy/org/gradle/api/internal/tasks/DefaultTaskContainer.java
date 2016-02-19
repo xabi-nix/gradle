@@ -32,6 +32,7 @@ import org.gradle.internal.graph.DirectedGraph;
 import org.gradle.internal.reflect.Instantiator;
 import org.gradle.model.internal.core.*;
 import org.gradle.model.internal.core.rule.describe.SimpleModelRuleDescriptor;
+import org.gradle.model.internal.registry.ModelRegistry;
 import org.gradle.model.internal.type.ModelType;
 import org.gradle.util.ConfigureUtil;
 import org.gradle.util.GUtil;
@@ -197,7 +198,16 @@ public class DefaultTaskContainer extends DefaultTaskCollection<Task> implements
     @Override
     public void discoverTasks() {
         project.fireDeferredConfiguration();
-        project.getModelRegistry().atStateOrLater(modelNode.getPath(), ModelNode.State.SelfClosed);
+        ModelRegistry registry = project.getModelRegistry();
+        registry.atStateOrLater(modelNode.getPath(), ModelNode.State.SelfClosed);
+        //registry.atStateOrLater(ModelPath.ROOT.child("components"), ModelNode.State.SelfClosed);
+        //registry.atStateOrLater(ModelPath.ROOT.child("components"), ModelNode.State.SelfClosed);
+        //registry.atStateOrLater(ModelPath.ROOT.child("components").child("myLib"), ModelNode.State.SelfClosed);
+        //registry.atStateOrLater(ModelPath.ROOT.child("components").child("myLib").child("binaries"), ModelNode.State.SelfClosed);
+        //registry.atStateOrLater(ModelPath.ROOT.child("components").child("myLib").child("binaries").child("java7Jar"), ModelNode.State.SelfClosed);
+        //registry.atStateOrLater(ModelPath.ROOT.child("components").child("myLib").child("binaries").child("java7Jar").child("tasks"), ModelNode.State.SelfClosed);
+        //Task task = registry.find(ModelPath.ROOT.child("components").child("myLib").child("binaries").child("java7Jar").child("tasks").child("myLibJava7Jar"), ModelType.of(Task.class));
+        //System.err.println(task);
     }
 
     @Override
@@ -211,11 +221,37 @@ public class DefaultTaskContainer extends DefaultTaskCollection<Task> implements
     private void maybeCreateTasks(String name) {
         if (modelNode.hasLink(name)) {
             realizeTask(MODEL_PATH.child(name), ModelNode.State.Initialized);
+        } else {
+            tryDirect(name);
+        }
+    }
+
+    private Task tryDirect(String name) {
+        try {
+            ModelPath path = ModelPath.path(name);
+            List<String> components = path.getComponents();
+            ModelPath cur = ModelPath.ROOT;
+            ModelRegistry registry = project.getModelRegistry();
+            for (String fragment : components) {
+                cur = cur.child(fragment);
+                registry.atStateOrLater(cur, ModelNode.State.SelfClosed);
+            }
+            registry.atStateOrLater(cur, ModelNode.State.GraphClosed);
+            Object realize = registry.realize(cur, ModelType.UNTYPED);
+            // workaround for the task not being visible in the model
+            return (Task) realize.getClass().getDeclaredMethod("getBuildTask").invoke(realize);
+        } catch (Exception e) {
+            System.err.println("Could not find " + name + " directly " + e.getMessage());
+            return null;
         }
     }
 
     public Task findByName(String name) {
         Task task = super.findByName(name);
+        if (task != null) {
+            return task;
+        }
+        task = tryDirect(name);
         if (task != null) {
             return task;
         }

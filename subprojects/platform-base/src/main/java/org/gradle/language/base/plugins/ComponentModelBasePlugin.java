@@ -115,14 +115,14 @@ public class ComponentModelBasePlugin implements Plugin<Project> {
             extensions.add("platforms", platforms);
         }
 
-        @Mutate
-        void collectBinaries(BinaryContainer binaries, ComponentSpecContainer componentSpecs) {
-            for (VariantComponentSpec componentSpec : componentSpecs.withType(VariantComponentSpec.class)) {
-                for (BinarySpecInternal binary : componentSpec.getBinaries().withType(BinarySpecInternal.class).values()) {
-                    binaries.put(binary.getProjectScopedName(), binary);
-                }
-            }
-        }
+//        @Mutate
+//        void collectBinaries(BinaryContainer binaries, ComponentSpecContainer componentSpecs) {
+//            for (VariantComponentSpec componentSpec : componentSpecs.withType(VariantComponentSpec.class)) {
+//                for (BinarySpecInternal binary : componentSpec.getBinaries().withType(BinarySpecInternal.class).values()) {
+//                    binaries.put(binary.getProjectScopedName(), binary);
+//                }
+//            }
+//        }
 
         @Mutate
         void attachBinariesToAssembleLifecycle(@Path("tasks.assemble") Task assemble, ComponentSpecContainer components) {
