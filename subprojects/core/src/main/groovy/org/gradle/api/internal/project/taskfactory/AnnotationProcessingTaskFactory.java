@@ -15,6 +15,7 @@
  */
 package org.gradle.api.internal.project.taskfactory;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 import org.gradle.api.*;
@@ -29,10 +30,18 @@ import org.gradle.api.internal.tasks.execution.TaskValidator;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.*;
 import org.gradle.api.tasks.incremental.IncrementalTaskInputs;
+import org.gradle.internal.Cast;
 import org.gradle.internal.Factory;
+import org.gradle.internal.UncheckedException;
+import org.gradle.internal.classloader.MutableURLClassLoader;
 import org.gradle.internal.reflect.Instantiator;
 import org.gradle.internal.reflect.JavaReflectionUtil;
 import org.gradle.util.DeprecationLogger;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Type;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.lang.annotation.Annotation;
@@ -43,10 +52,14 @@ import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.Callable;
 
+import static org.objectweb.asm.Opcodes.*;
+
 /**
  * A {@link ITaskFactory} which determines task actions, inputs and outputs based on annotation attached to the task properties. Also provides some validation based on these annotations.
  */
 public class AnnotationProcessingTaskFactory implements ITaskFactory {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AnnotationProcessingTaskFactory.class);
+
     private final ITaskFactory taskFactory;
     private final Map<Class, TaskClassInfo> classInfos;
 
@@ -65,15 +78,15 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
     };
 
     private final static List<? extends PropertyAnnotationHandler> HANDLERS = Arrays.asList(
-            new InputFilePropertyAnnotationHandler(),
-            new InputDirectoryPropertyAnnotationHandler(),
-            new InputFilesPropertyAnnotationHandler(),
-            new OutputFilePropertyAnnotationHandler(OutputFile.class, FILE_PROPERTY_TRANSFORMER),
-            new OutputFilePropertyAnnotationHandler(OutputFiles.class, ITERABLE_FILE_PROPERTY_TRANSFORMER),
-            new OutputDirectoryPropertyAnnotationHandler(OutputDirectory.class, FILE_PROPERTY_TRANSFORMER),
-            new OutputDirectoryPropertyAnnotationHandler(OutputDirectories.class, ITERABLE_FILE_PROPERTY_TRANSFORMER),
-            new InputPropertyAnnotationHandler(),
-            new NestedBeanPropertyAnnotationHandler());
+        new InputFilePropertyAnnotationHandler(),
+        new InputDirectoryPropertyAnnotationHandler(),
+        new InputFilesPropertyAnnotationHandler(),
+        new OutputFilePropertyAnnotationHandler(OutputFile.class, FILE_PROPERTY_TRANSFORMER),
+        new OutputFilePropertyAnnotationHandler(OutputFiles.class, ITERABLE_FILE_PROPERTY_TRANSFORMER),
+        new OutputDirectoryPropertyAnnotationHandler(OutputDirectory.class, FILE_PROPERTY_TRANSFORMER),
+        new OutputDirectoryPropertyAnnotationHandler(OutputDirectories.class, ITERABLE_FILE_PROPERTY_TRANSFORMER),
+        new InputPropertyAnnotationHandler(),
+        new NestedBeanPropertyAnnotationHandler());
 
     private final static ValidationAction NOT_NULL_VALIDATOR = new ValidationAction() {
         public void validate(String propertyName, Object value, Collection<String> messages) {
@@ -82,6 +95,8 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
             }
         }
     };
+
+    private final Map<String, Class<? extends Action<Task>>> directInvokers = new HashMap<String, Class<? extends Action<Task>>>();
 
     public AnnotationProcessingTaskFactory(ITaskFactory taskFactory) {
         this.taskFactory = taskFactory;
@@ -162,20 +177,20 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
         }
         if (Modifier.isStatic(method.getModifiers())) {
             throw new GradleException(String.format("Cannot use @TaskAction annotation on static method %s.%s().",
-                    method.getDeclaringClass().getSimpleName(), method.getName()));
+                method.getDeclaringClass().getSimpleName(), method.getName()));
         }
         final Class<?>[] parameterTypes = method.getParameterTypes();
         if (parameterTypes.length > 1) {
             throw new GradleException(String.format(
-                    "Cannot use @TaskAction annotation on method %s.%s() as this method takes multiple parameters.",
-                    method.getDeclaringClass().getSimpleName(), method.getName()));
+                "Cannot use @TaskAction annotation on method %s.%s() as this method takes multiple parameters.",
+                method.getDeclaringClass().getSimpleName(), method.getName()));
         }
 
         if (parameterTypes.length == 1) {
             if (!parameterTypes[0].equals(IncrementalTaskInputs.class)) {
                 throw new GradleException(String.format(
-                        "Cannot use @TaskAction annotation on method %s.%s() because %s is not a valid parameter to an action method.",
-                        method.getDeclaringClass().getSimpleName(), method.getName(), parameterTypes[0]));
+                    "Cannot use @TaskAction annotation on method %s.%s() because %s is not a valid parameter to an action method.",
+                    method.getDeclaringClass().getSimpleName(), method.getName(), parameterTypes[0]));
             }
             if (taskClassInfo.incremental) {
                 throw new GradleException(String.format("Cannot have multiple @TaskAction methods accepting an %s parameter.", IncrementalTaskInputs.class.getSimpleName()));
@@ -195,6 +210,10 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
                 if (parameterTypes.length == 1) {
                     return new IncrementalTaskAction(method);
                 } else {
+                    if (Modifier.isPublic(method.getModifiers())) {
+                        return directInvoker(method);
+                    }
+                    LOGGER.debug("Cannot generate a direct invoker for {} because the method is not public.", method);
                     return new StandardTaskAction(method);
                 }
             }
@@ -203,8 +222,8 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
 
     private static boolean isGetter(Method method) {
         return ((method.getName().startsWith("get") && method.getReturnType() != Void.TYPE)
-                || (method.getName().startsWith("is") && method.getReturnType().equals(boolean.class)))
-                && method.getParameterTypes().length == 0 && !Modifier.isStatic(method.getModifiers());
+            || (method.getName().startsWith("is") && method.getReturnType().equals(boolean.class)))
+            && method.getParameterTypes().length == 0 && !Modifier.isStatic(method.getModifiers());
     }
 
     private static class StandardTaskAction implements Action<Task> {
@@ -227,6 +246,72 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
         protected void doExecute(Task task, String methodName) {
             JavaReflectionUtil.method(task, Object.class, methodName).invoke(task);
         }
+    }
+
+    private Action<Task> directInvoker(Method method) {
+        Class<?> declaringClass = method.getDeclaringClass();
+        String id = declaringClass.getCanonicalName() + "#" + method.getName() + Type.getMethodDescriptor(method);
+        Class<? extends Action<Task>> invoker = directInvokers.get(id);
+        try {
+            if (invoker == null) {
+                String packageName = declaringClass.getPackage().getName().replace(".", "/") + '/';
+                final String className = packageName + declaringClass.getSimpleName() + "GeneratedTaskAction" + StringUtils.capitalize(method.getName());
+                final byte[] invokerBytes = generateDirectInvoker(method, className);
+                final String javaClassName = className.replace('/', '.');
+                MutableURLClassLoader cl = new MutableURLClassLoader(declaringClass.getClassLoader()) {
+                    @Override
+                    protected Class<?> findClass(final String name) throws ClassNotFoundException {
+                        if (name.equals(javaClassName)) {
+                            return defineClass(name, invokerBytes, 0, invokerBytes.length);
+                        }
+                        return super.findClass(name);
+                    }
+                };
+
+                invoker = Cast.uncheckedCast(cl.loadClass(javaClassName));
+                directInvokers.put(id, invoker);
+            }
+            return invoker.newInstance();
+        } catch (Throwable e) {
+            UncheckedException.throwAsUncheckedException(e);
+            return null;
+        }
+    }
+
+    private static byte[] generateDirectInvoker(Method method, String className) {
+        Class<?> declaringClass = method.getDeclaringClass();
+        ClassWriter cw = new ClassWriter(0);
+        cw.visit(V1_5, ACC_PUBLIC + ACC_SUPER, className, "Ljava/lang/Object;Lorg/gradle/api/Action<Lorg/gradle/api/Task;>;", "java/lang/Object", new String[]{"org/gradle/api/Action"});
+
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
+        mv.visitCode();
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        mv.visitInsn(RETURN);
+        mv.visitMaxs(1, 1);
+        mv.visitEnd();
+
+        mv = cw.visitMethod(ACC_PUBLIC, "execute", "(Lorg/gradle/api/Task;)V", null, null);
+        mv.visitCode();
+        mv.visitVarInsn(ALOAD, 1);
+        String internalName = Type.getInternalName(declaringClass);
+        mv.visitTypeInsn(CHECKCAST, internalName);
+        mv.visitMethodInsn(INVOKEVIRTUAL, internalName, method.getName(), Type.getMethodDescriptor(method), false);
+        mv.visitInsn(RETURN);
+        mv.visitMaxs(1, 2);
+        mv.visitEnd();
+
+        mv = cw.visitMethod(ACC_PUBLIC + ACC_BRIDGE + ACC_SYNTHETIC, "execute", "(Ljava/lang/Object;)V", null, null);
+        mv.visitCode();
+        mv.visitVarInsn(ALOAD, 1);
+        mv.visitTypeInsn(CHECKCAST, internalName);
+        mv.visitMethodInsn(INVOKEVIRTUAL, internalName, method.getName(), Type.getMethodDescriptor(method), false);
+        mv.visitInsn(RETURN);
+        mv.visitMaxs(1, 2);
+        mv.visitEnd();
+
+        cw.visitEnd();
+        return cw.toByteArray();
     }
 
     public static class IncrementalTaskAction extends StandardTaskAction implements ContextAwareTaskAction {
@@ -288,9 +373,9 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
         public void attachActions(PropertyInfo parent, Class<?> type) {
             Class<?> superclass = type.getSuperclass();
             if (!(superclass == null
-                    // Avoid reflecting on classes we know we don't need to look at
-                    || superclass.equals(ConventionTask.class) || superclass.equals(DefaultTask.class)
-                    || superclass.equals(AbstractTask.class) || superclass.equals(Object.class)
+                // Avoid reflecting on classes we know we don't need to look at
+                || superclass.equals(ConventionTask.class) || superclass.equals(DefaultTask.class)
+                || superclass.equals(AbstractTask.class) || superclass.equals(Object.class)
             )) {
                 attachActions(parent, superclass);
             }
