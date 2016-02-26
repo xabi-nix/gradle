@@ -28,7 +28,7 @@ import org.gradle.language.base.internal.tasks.StaleClassCleaner;
 public class ProcessResources extends Copy {
 
     @Override
-    protected void copy() {
+    public void copy() {
         StaleClassCleaner cleaner = new SimpleStaleClassCleaner(getOutputs());
         cleaner.setDestinationDir(getDestinationDir());
         cleaner.execute();

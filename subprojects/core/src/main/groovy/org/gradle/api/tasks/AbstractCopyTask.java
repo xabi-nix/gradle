@@ -74,7 +74,7 @@ public abstract class AbstractCopyTask extends ConventionTask implements CopySpe
     }
 
     @TaskAction
-    protected void copy() {
+    public void copy() {
         Instantiator instantiator = getInstantiator();
         FileSystem fileSystem = getFileSystem();
 

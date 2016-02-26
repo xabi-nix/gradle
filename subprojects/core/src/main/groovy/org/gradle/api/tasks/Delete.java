@@ -34,7 +34,7 @@ public class Delete extends ConventionTask {
     private Set<Object> delete = new LinkedHashSet<Object>();
 
     @TaskAction
-    protected void clean() {
+    public void clean() {
         setDidWork(getProject().delete(delete));
     }
 
