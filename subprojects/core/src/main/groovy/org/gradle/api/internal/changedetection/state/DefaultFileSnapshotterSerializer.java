@@ -33,7 +33,6 @@ class DefaultFileSnapshotterSerializer implements Serializer<DefaultFileCollecti
 
     public DefaultFileCollectionSnapshotter.FileCollectionSnapshotImpl read(Decoder decoder) throws Exception {
         Map<String, DefaultFileCollectionSnapshotter.IncrementalFileSnapshot> snapshots = new HashMap<String, DefaultFileCollectionSnapshotter.IncrementalFileSnapshot>();
-        DefaultFileCollectionSnapshotter.FileCollectionSnapshotImpl snapshot = new DefaultFileCollectionSnapshotter.FileCollectionSnapshotImpl(snapshots);
         int snapshotsCount = decoder.readSmallInt();
         for (int i = 0; i < snapshotsCount; i++) {
             String key = stringInterner.intern(decoder.readString());
@@ -51,7 +50,7 @@ class DefaultFileSnapshotterSerializer implements Serializer<DefaultFileCollecti
                 throw new RuntimeException("Unable to read serialized file collection snapshot. Unrecognized value found in the data stream.");
             }
         }
-        return snapshot;
+        return DefaultFileCollectionSnapshotter.FileCollectionSnapshotImpl.of(snapshots);
     }
 
     public void write(Encoder encoder, DefaultFileCollectionSnapshotter.FileCollectionSnapshotImpl value) throws Exception {

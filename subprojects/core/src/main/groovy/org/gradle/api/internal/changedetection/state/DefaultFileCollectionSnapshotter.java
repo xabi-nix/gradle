@@ -17,6 +17,7 @@
 package org.gradle.api.internal.changedetection.state;
 
 import com.google.common.collect.Lists;
+import org.gradle.api.Nullable;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.FileVisitDetails;
 import org.gradle.api.file.FileVisitor;
@@ -24,9 +25,13 @@ import org.gradle.api.internal.cache.StringInterner;
 import org.gradle.api.internal.file.FileResolver;
 import org.gradle.api.internal.file.FileTreeInternal;
 import org.gradle.api.internal.file.collections.DefaultFileCollectionResolveContext;
+import org.gradle.internal.serialize.Decoder;
+import org.gradle.internal.serialize.Encoder;
+import org.gradle.internal.serialize.Serializer;
 import org.gradle.internal.serialize.SerializerRegistry;
 import org.gradle.util.ChangeListener;
 
+import java.io.EOFException;
 import java.io.File;
 import java.math.BigInteger;
 import java.util.*;
@@ -61,10 +66,11 @@ public class DefaultFileCollectionSnapshotter implements FileCollectionSnapshott
 
     public void registerSerializers(SerializerRegistry<FileCollectionSnapshot> registry) {
         registry.register(FileCollectionSnapshotImpl.class, new DefaultFileSnapshotterSerializer(stringInterner));
+        registry.register(FileCollectionSnapshotImpl.EmptyFileCollectionSnapshot.class, FileCollectionSnapshotImpl.EmptyFileCollectionSnapshot.SERIALIZER);
     }
 
     public FileCollectionSnapshot emptySnapshot() {
-        return new FileCollectionSnapshotImpl(Collections.<String, IncrementalFileSnapshot>emptyMap());
+        return FileCollectionSnapshotImpl.EMPTY;
     }
 
     public FileCollectionSnapshot snapshot(final FileCollection input) {
@@ -74,7 +80,7 @@ public class DefaultFileCollectionSnapshotter implements FileCollectionSnapshott
         visitFiles(input, allFileVisitDetails, missingFiles);
 
         if (allFileVisitDetails.isEmpty() && missingFiles.isEmpty()) {
-            return new FileCollectionSnapshotImpl(Collections.<String, IncrementalFileSnapshot>emptyMap());
+            return FileCollectionSnapshotImpl.EMPTY;
         }
 
         final Map<String, IncrementalFileSnapshot> snapshots = new HashMap<String, IncrementalFileSnapshot>();
@@ -100,7 +106,7 @@ public class DefaultFileCollectionSnapshotter implements FileCollectionSnapshott
             }
         });
 
-        return new FileCollectionSnapshotImpl(snapshots);
+        return FileCollectionSnapshotImpl.of(snapshots);
     }
 
     protected void visitFiles(FileCollection input, final List<FileVisitDetails> allFileVisitDetails, final List<File> missingFiles) {
@@ -210,6 +216,16 @@ public class DefaultFileCollectionSnapshotter implements FileCollectionSnapshott
     }
 
     static class FileCollectionSnapshotImpl implements FileCollectionSnapshot {
+        private static final EmptyFilesSnapshotSet EMPTY_FILES_SNAPSHOT_SET = new EmptyFilesSnapshotSet();
+        private static final EmptyFileCollectionSnapshot EMPTY = new EmptyFileCollectionSnapshot();
+
+        public static FileCollectionSnapshotImpl of(Map<String, IncrementalFileSnapshot> snapshots) {
+            if (snapshots.isEmpty()) {
+                return EMPTY;
+            }
+            return new FileCollectionSnapshotImpl(snapshots);
+        }
+
         final Map<String, IncrementalFileSnapshot> snapshots;
 
         public FileCollectionSnapshotImpl(Map<String, IncrementalFileSnapshot> snapshots) {
@@ -217,7 +233,7 @@ public class DefaultFileCollectionSnapshotter implements FileCollectionSnapshott
         }
 
         public List<File> getFiles() {
-            List<File> files = Lists.newArrayList();
+            List<File> files = Lists.newArrayListWithCapacity(snapshots.size());
             for (Map.Entry<String, IncrementalFileSnapshot> entry : snapshots.entrySet()) {
                 if (!(entry.getValue() instanceof DirSnapshot)) {
                     files.add(new File(entry.getKey()));
@@ -310,5 +326,39 @@ public class DefaultFileCollectionSnapshotter implements FileCollectionSnapshott
             }
         }
 
+        private static class EmptyFilesSnapshotSet implements FilesSnapshotSet {
+            @Nullable
+            public FileSnapshot findSnapshot(File file) {
+                return null;
+            }
+        }
+
+        private static class EmptyFileCollectionSnapshot extends FileCollectionSnapshotImpl {
+            private static final EmptyFileCollectionSnapshotSerializer SERIALIZER = new EmptyFileCollectionSnapshotSerializer();
+
+            public EmptyFileCollectionSnapshot() {
+                super(Collections.<String, IncrementalFileSnapshot>emptyMap());
+            }
+
+            @Override
+            public List<File> getFiles() {
+                return Collections.emptyList();
+            }
+
+            @Override
+            public FilesSnapshotSet getSnapshot() {
+                return EMPTY_FILES_SNAPSHOT_SET;
+            }
+        }
+
+        private static class EmptyFileCollectionSnapshotSerializer implements org.gradle.internal.serialize.Serializer<FileCollectionSnapshotImpl.EmptyFileCollectionSnapshot> {
+
+            public EmptyFileCollectionSnapshot read(Decoder decoder) throws EOFException, Exception {
+                return EMPTY;
+            }
+
+            public void write(Encoder encoder, EmptyFileCollectionSnapshot value) throws Exception {
+            }
+        }
     }
 }
