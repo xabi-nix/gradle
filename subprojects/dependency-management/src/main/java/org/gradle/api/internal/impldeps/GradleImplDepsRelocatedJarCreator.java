@@ -48,7 +48,9 @@ public class GradleImplDepsRelocatedJarCreator {
 
     private static ZipOutputStream openJarOutputStream(File outputJar) {
         try {
-            return new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(outputJar)));
+            ZipOutputStream outputStream = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(outputJar)));
+            outputStream.setLevel(0);
+            return outputStream;
         } catch (IOException e) {
             throw UncheckedException.throwAsUncheckedException(e);
         }
@@ -96,32 +98,43 @@ public class GradleImplDepsRelocatedJarCreator {
 
     private static void processServiceDescriptor(ZipOutputStream outputStream, ZipInputStream inputStream, ZipEntry zipEntry, byte[] buffer) throws IOException {
         String descriptorName = zipEntry.getName().substring("META-INF/services/".length());
-        String descriptorApiClass = descriptorName.replace('.', '/');
+        String descriptorApiClass = periodsToSlashes(descriptorName);
         String relocatedApiClassName = REMAPPER.relocateClass(descriptorApiClass);
         if (relocatedApiClassName == null) {
             relocatedApiClassName = descriptorApiClass;
         }
 
-        byte[] bytes = readEntry(inputStream, (int) zipEntry.getSize(), buffer);
-        String descriptorImplClass = new String(bytes, CharsetUtil.UTF_8).replace('.', '/');
+        byte[] bytes = readEntry(inputStream, zipEntry, buffer);
+        String descriptorImplClass = periodsToSlashes(new String(bytes, CharsetUtil.UTF_8));
         String relocatedImplClassName = REMAPPER.relocateClass(descriptorImplClass);
         if (relocatedImplClassName == null) {
             relocatedImplClassName = descriptorImplClass;
         }
 
-        outputStream.putNextEntry(new ZipEntry("META-INF/services/" + relocatedApiClassName.replace('/', '.')));
-        outputStream.write(relocatedImplClassName.replace('/', '.').getBytes(CharsetUtil.UTF_8));
-        outputStream.closeEntry();
+        writeEntry(outputStream, "META-INF/services/" + slashesToPeriods(relocatedApiClassName), slashesToPeriods(relocatedImplClassName).getBytes(CharsetUtil.UTF_8));
+    }
+
+    private static String slashesToPeriods(String slashClassName) {
+        return slashClassName.replace('/', '.');
+    }
+
+    private static String periodsToSlashes(String periodClassName) {
+        return periodClassName.replace('.', '/');
     }
 
     private static void processNonClassFile(ZipOutputStream outputStream, ZipInputStream inputStream, ZipEntry zipEntry, byte[] buffer) throws IOException {
-        outputStream.putNextEntry(new ZipEntry(zipEntry.getName()));
-        outputStream.write(readEntry(inputStream, (int) zipEntry.getSize(), buffer));
+        writeEntry(outputStream, zipEntry.getName(), readEntry(inputStream, zipEntry, buffer));
+    }
+
+    private static void writeEntry(ZipOutputStream outputStream, String name, byte[] content) throws IOException {
+        ZipEntry zipEntry = new ZipEntry(name);
+        outputStream.putNextEntry(zipEntry);
+        outputStream.write(content);
         outputStream.closeEntry();
     }
 
     private static void processClassFile(ZipOutputStream outputStream, ZipInputStream inputStream, ZipEntry zipEntry, String className, byte[] buffer) throws IOException {
-        byte[] bytes = readEntry(inputStream, (int) zipEntry.getSize(), buffer);
+        byte[] bytes = readEntry(inputStream, zipEntry, buffer);
         ClassReader classReader = new ClassReader(bytes);
         ClassWriter classWriter = new ClassWriter(0);
         ClassVisitor remappingVisitor = new RemappingClassAdapter(classWriter, REMAPPER);
@@ -137,14 +150,11 @@ public class GradleImplDepsRelocatedJarCreator {
         String remappedClassName = REMAPPER.relocateClass(className);
         String newFileName = (remappedClassName == null ? className : remappedClassName).concat(".class");
 
-        ZipEntry newEntry = new ZipEntry(newFileName);
-        newEntry.setSize(remappedClass.length);
-        outputStream.putNextEntry(newEntry);
-        outputStream.write(remappedClass);
-        outputStream.closeEntry();
+        writeEntry(outputStream, newFileName, remappedClass);
     }
 
-    private static byte[] readEntry(InputStream inputStream, int size, byte[] buffer) throws IOException {
+    private static byte[] readEntry(InputStream inputStream, ZipEntry zipEntry, byte[] buffer) throws IOException {
+        int size = (int) zipEntry.getSize();
         if (size == -1) {
             ByteArrayOutputStream out = new ByteArrayOutputStream(buffer.length);
             int read = inputStream.read(buffer);
