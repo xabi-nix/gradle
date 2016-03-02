@@ -25,7 +25,7 @@ import org.gradle.internal.jvm.Jvm;
 import java.io.File;
 import java.net.URLClassLoader;
 
-public class DefaultClassLoaderRegistry implements ClassLoaderRegistry, JdkToolsInitializer {
+public class DefaultClassLoaderRegistry implements ClassLoaderRegistry {
     private final ClassLoader apiOnlyClassLoader;
     private final ClassLoader apiAndPluginsClassLoader;
     private final ClassLoader extensionsClassLoader;
@@ -56,15 +56,6 @@ public class DefaultClassLoaderRegistry implements ClassLoaderRegistry, JdkTools
         rootClassLoader.allowPackage("org.apache.log4j");
         rootClassLoader.allowPackage("javax.inject");
         return new CachingClassLoader(rootClassLoader);
-    }
-
-    public void initializeJdkTools() {
-        // Add in tools.jar to the systemClassloader parent
-        File toolsJar = Jvm.current().getToolsJar();
-        if (toolsJar != null) {
-            final ClassLoader systemClassLoaderParent = classLoaderFactory.getIsolatedSystemClassLoader();
-            ClasspathUtil.addUrl((URLClassLoader) systemClassLoaderParent, new DefaultClassPath(toolsJar).getAsURLs());
-        }
     }
 
     public ClassLoader getRuntimeClassLoader() {

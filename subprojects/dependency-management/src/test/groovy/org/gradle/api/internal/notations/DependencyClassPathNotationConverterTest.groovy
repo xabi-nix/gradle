@@ -31,7 +31,7 @@ public class DependencyClassPathNotationConverterTest extends Specification {
     def instantiator = Mock(Instantiator.class)
     def classPathRegistry = Mock(ClassPathRegistry.class)
     def fileResolver = Mock(FileResolver.class)
-    def factory = new DependencyClassPathNotationConverter(instantiator, classPathRegistry, fileResolver)
+    def factory = new DependencyClassPathNotationConverter(instantiator, classPathRegistry, fileResolver, gradleUserHomeDir, gradleVersion)
 
     def "parses classpath literals"() {
         given:
