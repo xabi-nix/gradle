@@ -18,20 +18,17 @@ package org.gradle.testkit
 
 import com.google.common.math.IntMath
 import groovy.io.FileType
-import org.gradle.api.JavaVersion
 import org.gradle.integtests.fixtures.daemon.DaemonLogsAnalyzer
 import org.gradle.integtests.fixtures.executer.ExecutionResult
 import org.gradle.test.fixtures.file.TestFile
-import org.gradle.testkit.runner.GradleRunnerIntegrationTest
 import org.gradle.testkit.runner.GradleRunner
-
+import org.gradle.testkit.runner.GradleRunnerIntegrationTest
 import org.gradle.testkit.runner.fixtures.annotations.NoDebug
 import org.gradle.testkit.runner.fixtures.annotations.NonCrossVersion
 import org.gradle.testkit.runner.internal.DefaultGradleRunner
 import org.gradle.testkit.runner.internal.TempTestKitDirProvider
 import org.gradle.util.GFileUtils
 import org.gradle.util.UsesNativeServices
-import spock.lang.Unroll
 
 @NonCrossVersion
 @UsesNativeServices
@@ -66,7 +63,12 @@ class TestKitEndUserIntegrationTest extends GradleRunnerIntegrationTest {
         def jarsDir = file('jars').createDir()
 
         new File(distribution.gradleHomeDir, 'lib').eachFileRecurse(FileType.FILES) { f ->
-            if (f.name.contains("test-kit")) {
+            if (f.name.contains("gradle-test-kit")
+                || f.name.contains("commons-io")
+                || f.name.contains("gradle-base-services")
+                || f.name.contains("gradle-tooling-api")
+                || f.name.contains("gradle-core")
+            ) {
                 GFileUtils.copyFile(f, new File(jarsDir, f.name))
             }
         }
@@ -88,14 +90,13 @@ class TestKitEndUserIntegrationTest extends GradleRunnerIntegrationTest {
         failure.output.contains("Could not find a Gradle runtime to use based on the location of the GradleRunner class: $testKitJar.canonicalPath. Please specify a Gradle runtime to use via GradleRunner.withGradleVersion() or similar.")
     }
 
-    @Unroll
     @NoDebug
-    def "attempt to use #origin class in functional test should fail"() {
+    def "attempt to use Gradle impl dependency class in functional test should fail"() {
         buildFile << gradleTestKitDependency()
         writeTest """
             package org.gradle.test
 
-            import $clazz.name
+            import $IntMath.name
             import spock.lang.Specification
 
             class BuildLogicFunctionalTest extends Specification {}
@@ -105,17 +106,12 @@ class TestKitEndUserIntegrationTest extends GradleRunnerIntegrationTest {
         fails('build')
 
         then:
-        result.error.contains("unable to resolve class $clazz.name")
+        result.error.contains("unable to resolve class $IntMath.name")
         executedAndNotSkipped(':compileTestGroovy')
         assertDaemonsAreStopping()
 
         cleanup:
         killDaemons()
-
-        where:
-        clazz       | origin
-        JavaVersion | 'Gradle core'
-        IntMath     | 'Google Guava'
     }
 
     @NoDebug

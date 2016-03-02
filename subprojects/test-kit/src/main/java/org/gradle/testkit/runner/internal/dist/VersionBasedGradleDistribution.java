@@ -16,7 +16,7 @@
 
 package org.gradle.testkit.runner.internal.dist;
 
-public final class VersionBasedGradleDistribution extends GradleDistribution {
+public final class VersionBasedGradleDistribution extends UsableGradleDistribution {
 
     private final String gradleVersion;
 

@@ -25,7 +25,7 @@ import org.gradle.testkit.runner.BuildTask;
 import org.gradle.testkit.runner.IncompletePluginMetadataException;
 import org.gradle.testkit.runner.InvalidRunnerConfigurationException;
 import org.gradle.testkit.runner.TaskOutcome;
-import org.gradle.testkit.runner.internal.dist.GradleDistribution;
+import org.gradle.testkit.runner.internal.dist.UsableGradleDistribution;
 import org.gradle.testkit.runner.internal.dist.InstalledGradleDistribution;
 import org.gradle.testkit.runner.internal.dist.URILocatedGradleDistribution;
 import org.gradle.testkit.runner.internal.dist.VersionBasedGradleDistribution;
@@ -201,7 +201,7 @@ public class ToolingApiGradleExecutor implements GradleExecutor {
         }
     }
 
-    private GradleConnector buildConnector(File gradleUserHome, File projectDir, boolean embedded, GradleDistribution gradleDistribution) {
+    private GradleConnector buildConnector(File gradleUserHome, File projectDir, boolean embedded, UsableGradleDistribution gradleDistribution) {
         DefaultGradleConnector gradleConnector = (DefaultGradleConnector) GradleConnector.newConnector();
         useGradleDistribution(gradleConnector, gradleDistribution);
         gradleConnector.useGradleUserHomeDir(gradleUserHome);
@@ -213,7 +213,7 @@ public class ToolingApiGradleExecutor implements GradleExecutor {
         return gradleConnector;
     }
 
-    private void useGradleDistribution(DefaultGradleConnector gradleConnector, GradleDistribution gradleDistribution) {
+    private void useGradleDistribution(DefaultGradleConnector gradleConnector, UsableGradleDistribution gradleDistribution) {
         gradleConnector.useDistributionBaseDir(GradleUserHomeLookup.gradleUserHome());
 
         if (gradleDistribution instanceof InstalledGradleDistribution) {

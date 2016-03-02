@@ -18,16 +18,16 @@ package org.gradle.testkit.runner.internal;
 
 import org.apache.commons.io.output.WriterOutputStream;
 import org.gradle.api.Action;
-import org.gradle.api.internal.GradleDistributionLocator;
-import org.gradle.api.internal.classpath.DefaultGradleDistributionLocator;
 import org.gradle.internal.SystemProperties;
 import org.gradle.internal.classloader.ClasspathUtil;
 import org.gradle.internal.classpath.ClassPath;
 import org.gradle.internal.classpath.DefaultClassPath;
+import org.gradle.internal.installation.CurrentGradleInstallation;
+import org.gradle.internal.installation.GradleInstallation;
 import org.gradle.testkit.runner.*;
-import org.gradle.testkit.runner.internal.dist.GradleDistribution;
 import org.gradle.testkit.runner.internal.dist.InstalledGradleDistribution;
 import org.gradle.testkit.runner.internal.dist.URILocatedGradleDistribution;
+import org.gradle.testkit.runner.internal.dist.UsableGradleDistribution;
 import org.gradle.testkit.runner.internal.dist.VersionBasedGradleDistribution;
 import org.gradle.testkit.runner.internal.io.SynchronizedOutputStream;
 
@@ -47,7 +47,7 @@ public class DefaultGradleRunner extends GradleRunner {
 
     private final GradleExecutor gradleExecutor;
 
-    private GradleDistribution distribution;
+    private UsableGradleDistribution distribution;
     private TestKitDirProvider testKitDirProvider;
     private File projectDirectory;
     private List<String> arguments = Collections.emptyList();
@@ -256,7 +256,7 @@ public class DefaultGradleRunner extends GradleRunner {
 
         File testKitDir = createTestKitDir(testKitDirProvider);
 
-        GradleDistribution effectiveDistribution = distribution == null ? findGradleInstallFromGradleRunner() : distribution;
+        UsableGradleDistribution effectiveDistribution = distribution == null ? findGradleInstallFromGradleRunner() : distribution;
 
         GradleExecutionResult execResult = gradleExecutor.run(new GradleExecutionParameters(
             effectiveDistribution,
@@ -298,10 +298,9 @@ public class DefaultGradleRunner extends GradleRunner {
         }
     }
 
-    private static GradleDistribution findGradleInstallFromGradleRunner() {
-        GradleDistributionLocator gradleDistributionLocator = new DefaultGradleDistributionLocator(GradleRunner.class);
-        File gradleHome = gradleDistributionLocator.getGradleHome();
-        if (gradleHome == null) {
+    private static UsableGradleDistribution findGradleInstallFromGradleRunner() {
+        GradleInstallation gradleInstallation = CurrentGradleInstallation.get();
+        if (gradleInstallation == null) {
             String messagePrefix = "Could not find a Gradle runtime to use based on the location of the GradleRunner class";
             try {
                 File classpathForClass = ClasspathUtil.getClasspathForClass(GradleRunner.class);
@@ -311,7 +310,7 @@ public class DefaultGradleRunner extends GradleRunner {
             }
             throw new InvalidRunnerConfigurationException(messagePrefix + ". Please specify a Gradle runtime to use via GradleRunner.withGradleVersion() or similar.");
         }
-        return new InstalledGradleDistribution(gradleHome);
+        return new InstalledGradleDistribution(gradleInstallation.getGradleHome());
     }
 
 }

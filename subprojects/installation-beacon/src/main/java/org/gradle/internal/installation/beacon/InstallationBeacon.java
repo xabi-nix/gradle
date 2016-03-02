@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 the original author or authors.
+ * Copyright 2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,12 @@
  * limitations under the License.
  */
 
-package org.gradle.testkit.runner.internal.dist;
+package org.gradle.internal.installation.beacon;
 
-import java.io.File;
-
-public final class InstalledGradleDistribution extends UsableGradleDistribution {
-
-    private final File gradleHome;
-
-    public InstalledGradleDistribution(File gradleHome) {
-        this.gradleHome = gradleHome;
-    }
-
-    public File getGradleHome() {
-        return gradleHome;
-    }
+/**
+ * This marker is used to locate the “source” Gradle distribution at runtime.
+ * See {@code GradleDistributionLocator}.
+ */
+@SuppressWarnings("unused")
+public interface InstallationBeacon {
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 the original author or authors.
+ * Copyright 2015 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,24 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.gradle.api.internal;
 
-import org.gradle.api.Nullable;
+package org.gradle.testkit.runner.internal.dist;
 
-import java.io.File;
-import java.util.List;
-
-public interface GradleDistributionLocator {
-    /**
-     * Returns the directory containing the Gradle distribution of the current Gradle version. May be null.
-     */
-    @Nullable
-    File getGradleHome();
-
-    /**
-     * Returns the library directory of the Gradle distribution plus its subdirectories. Maybe be an empty list.
-     *
-     * @return Library directories
-     */
-    List<File> getLibDirs();
+public abstract class UsableGradleDistribution {
 }

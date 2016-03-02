@@ -30,6 +30,7 @@ import org.gradle.internal.os.OperatingSystem
 import org.gradle.test.fixtures.file.TestFile
 import org.gradle.testkit.runner.fixtures.annotations.*
 import org.gradle.testkit.runner.internal.dist.InstalledGradleDistribution
+import org.gradle.testkit.runner.internal.dist.UsableGradleDistribution
 import org.gradle.testkit.runner.internal.dist.VersionBasedGradleDistribution
 import org.gradle.testkit.runner.internal.feature.TestKitFeature
 import org.gradle.util.GradleVersion
@@ -50,7 +51,7 @@ abstract class GradleRunnerIntegrationTest extends AbstractIntegrationSpec {
 
     // Context set by multi run infrastructure
     public static GradleVersion gradleVersion
-    public static org.gradle.testkit.runner.internal.dist.GradleDistribution testKitRuntime
+    public static UsableGradleDistribution testKitRuntime
     public static boolean debug
     public static boolean crossVersion
 
@@ -217,7 +218,7 @@ abstract class GradleRunnerIntegrationTest extends AbstractIntegrationSpec {
             final TestedGradleDistribution UNDER_DEVELOPMENT = new TestedGradleDistribution(BUILD_CONTEXT.version, new InstalledGradleDistribution(BUILD_CONTEXT.gradleHomeDir))
 
             final GradleVersion gradleVersion
-            final org.gradle.testkit.runner.internal.dist.GradleDistribution gradleDistribution
+            final UsableGradleDistribution gradleDistribution
 
             static TestedGradleDistribution forVersion(GradleVersion gradleVersion) {
                 new TestedGradleDistribution(gradleVersion, new VersionBasedGradleDistribution(gradleVersion.version))

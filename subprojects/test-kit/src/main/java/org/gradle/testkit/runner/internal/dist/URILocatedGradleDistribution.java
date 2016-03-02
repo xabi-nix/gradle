@@ -18,7 +18,7 @@ package org.gradle.testkit.runner.internal.dist;
 
 import java.net.URI;
 
-public final class URILocatedGradleDistribution extends GradleDistribution {
+public final class URILocatedGradleDistribution extends UsableGradleDistribution {
 
     private final URI location;
 

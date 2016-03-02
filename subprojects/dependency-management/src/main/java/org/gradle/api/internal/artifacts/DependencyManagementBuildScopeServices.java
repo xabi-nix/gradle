@@ -18,7 +18,6 @@ package org.gradle.api.internal.artifacts;
 
 import org.gradle.StartParameter;
 import org.gradle.api.internal.ClassPathRegistry;
-import org.gradle.api.internal.GradleDistributionLocator;
 import org.gradle.api.internal.artifacts.dsl.dependencies.DependencyFactory;
 import org.gradle.api.internal.artifacts.ivyservice.*;
 import org.gradle.api.internal.artifacts.ivyservice.dynamicversions.ModuleVersionsCache;
@@ -52,6 +51,7 @@ import org.gradle.api.internal.project.ProjectRegistry;
 import org.gradle.cache.CacheRepository;
 import org.gradle.initialization.ProjectAccessListener;
 import org.gradle.internal.component.external.model.ModuleComponentArtifactMetaData;
+import org.gradle.internal.installation.CurrentGradleInstallation;
 import org.gradle.internal.reflect.Instantiator;
 import org.gradle.internal.resource.cached.ByUrlCachedExternalResourceIndex;
 import org.gradle.internal.resource.cached.ivy.ArtifactAtRepositoryCachedArtifactIndex;
@@ -81,6 +81,7 @@ class DependencyManagementBuildScopeServices {
         ProjectAccessListener projectAccessListener,
         StartParameter startParameter,
         ClassPathRegistry classPathRegistry,
+        CurrentGradleInstallation currentGradleInstallation,
         FileLookup fileLookup
     ) {
         DefaultProjectDependencyFactory factory = new DefaultProjectDependencyFactory(
@@ -90,7 +91,7 @@ class DependencyManagementBuildScopeServices {
 
         String gradleVersion = GradleVersion.current().getVersion();
         return new DefaultDependencyFactory(
-            DependencyNotationParser.parser(instantiator, factory, classPathRegistry, fileLookup, startParameter.getGradleUserHomeDir(), gradleVersion),
+            DependencyNotationParser.parser(instantiator, factory, classPathRegistry, fileLookup, currentGradleInstallation, startParameter.getGradleUserHomeDir(), gradleVersion),
             new ClientModuleNotationParserFactory(instantiator).create(),
             projectDependencyFactory);
     }
