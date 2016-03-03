@@ -74,7 +74,7 @@ public class DaemonTcpServerConnector implements DaemonServerConnector {
                         connectionErrorHandler.run();
                         throw e;
                     }
-                    handler.handle(new SynchronizedDispatchConnection<Message>(remoteConnection));
+                    handler.handle(new AsynchronousQueueDispatchConnection<Message>(remoteConnection));
                 }
             };
 
