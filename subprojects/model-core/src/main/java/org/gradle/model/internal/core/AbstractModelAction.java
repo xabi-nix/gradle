@@ -20,21 +20,24 @@ import com.google.common.base.Preconditions;
 import org.gradle.model.internal.core.rule.describe.ModelRuleDescriptor;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public abstract class AbstractModelAction<T> implements ModelAction {
+    private final static List<? extends ModelReference<?>> NO_INPUTS = Collections.emptyList();
+
     protected final ModelReference<T> subject;
     protected final ModelRuleDescriptor descriptor;
     protected final List<? extends ModelReference<?>> inputs;
 
     protected AbstractModelAction(ModelReference<T> subject, ModelRuleDescriptor descriptor, ModelReference<?>... inputs) {
-        this(subject, descriptor, Arrays.asList(inputs));
+        this(subject, descriptor, toList(inputs));
     }
 
     protected AbstractModelAction(ModelReference<T> subject, ModelRuleDescriptor descriptor, List<? extends ModelReference<?>> inputs) {
         this.subject = Preconditions.checkNotNull(subject, "subject");
         this.descriptor = Preconditions.checkNotNull(descriptor, "descriptor");
-        this.inputs = Preconditions.checkNotNull(inputs, "inputs");
+        this.inputs = Preconditions.checkNotNull(inputs, "inputs").isEmpty() ? NO_INPUTS : inputs;
     }
 
     @Override
@@ -50,5 +53,12 @@ public abstract class AbstractModelAction<T> implements ModelAction {
     @Override
     final public List<? extends ModelReference<?>> getInputs() {
         return inputs;
+    }
+
+    private static <T extends ModelReference<?>> List<? extends ModelReference<?>> toList(ModelReference<?>... elements) {
+        if (elements == null || elements.length == 0) {
+            return NO_INPUTS;
+        }
+        return Arrays.asList(elements);
     }
 }
