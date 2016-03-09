@@ -28,7 +28,7 @@ public class SimpleModelRuleDescriptor extends AbstractModelRuleDescriptor {
     private final String descriptor;
 
     public SimpleModelRuleDescriptor(String descriptor) {
-        this.descriptor = descriptor;
+        this.descriptor = INTERNER.intern(descriptor);
     }
 
     public SimpleModelRuleDescriptor(String descriptor, Object... args) {

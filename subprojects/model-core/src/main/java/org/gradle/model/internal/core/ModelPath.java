@@ -24,6 +24,7 @@ import com.google.common.collect.Iterables;
 import net.jcip.annotations.ThreadSafe;
 import org.gradle.api.GradleException;
 import org.gradle.api.Nullable;
+import org.gradle.api.internal.cache.StringInterner;
 import org.gradle.internal.exceptions.Contextual;
 
 import java.util.ArrayList;
@@ -33,6 +34,8 @@ import java.util.List;
 
 @ThreadSafe
 public class ModelPath implements Iterable<String>, Comparable<ModelPath> {
+    private static final StringInterner INTERNER = new StringInterner();
+
     public static final ModelPath ROOT = new ModelPath("", Collections.<String>emptyList()) {
         @Override
         public String toString() {
@@ -53,18 +56,26 @@ public class ModelPath implements Iterable<String>, Comparable<ModelPath> {
     private final List<String> components;
 
     public ModelPath(String path) {
-        this.path = path;
-        this.components = PATH_SPLITTER.splitToList(path);
+        this.path = INTERNER.intern(path);
+        this.components = intern(PATH_SPLITTER.splitToList(path));
     }
 
     public ModelPath(Iterable<String> parts) {
-        this.path = PATH_JOINER.join(parts);
-        this.components = ImmutableList.copyOf(parts);
+        this.path = INTERNER.intern(PATH_JOINER.join(parts));
+        this.components = ImmutableList.copyOf(intern(parts));
     }
 
     private ModelPath(String path, List<String> parts) {
-        this.path = path;
-        this.components = parts;
+        this.path = INTERNER.intern(path);
+        this.components = intern(parts);
+    }
+
+    private static List<String> intern(Iterable<String> components) {
+        ArrayList<String> interned = new ArrayList<String>();
+        for (String s : components) {
+            interned.add(INTERNER.intern(s));
+        }
+        return interned;
     }
 
     @Override
@@ -118,7 +129,7 @@ public class ModelPath implements Iterable<String>, Comparable<ModelPath> {
     }
 
     public static String pathString(Iterable<String> names) {
-        return PATH_JOINER.join(names);
+        return INTERNER.intern(PATH_JOINER.join(names));
     }
 
     public ModelPath child(String child) {

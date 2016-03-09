@@ -55,7 +55,7 @@ public class MethodModelRuleDescriptor extends AbstractModelRuleDescriptor {
 
     private String getDescription() {
         if (description == null) {
-            description = getClassName() + "#" + method.getName();
+            description = INTERNER.intern(getClassName() + "#" + method.getName());
         }
 
         return description;
