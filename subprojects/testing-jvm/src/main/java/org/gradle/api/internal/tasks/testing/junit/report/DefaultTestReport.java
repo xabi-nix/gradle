@@ -31,6 +31,9 @@ import org.gradle.util.Clock;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.gradle.api.tasks.testing.TestResult.ResultType.SKIPPED;
 
@@ -69,21 +72,41 @@ public class DefaultTestReport implements TestReporter {
         return model;
     }
 
-    private void generateFiles(AllTestResults model, final TestResultsProvider resultsProvider, File reportDir) {
+    private void generateFiles(AllTestResults model, final TestResultsProvider resultsProvider, final File reportDir) {
         try {
             HtmlReportRenderer htmlRenderer = new HtmlReportRenderer();
             htmlRenderer.render(model, new ReportRenderer<AllTestResults, HtmlReportBuilder>() {
                 @Override
-                public void render(AllTestResults model, HtmlReportBuilder output) throws IOException {
-                    PackagePageRenderer packagePageRenderer = new PackagePageRenderer();
-                    ClassPageRenderer classPageRenderer = new ClassPageRenderer(resultsProvider);
+                public void render(final AllTestResults model, final HtmlReportBuilder output) throws IOException {
+                    ExecutorService parallelRenderer = Executors.newFixedThreadPool(2*Runtime.getRuntime().availableProcessors());
+                    final PackagePageRenderer packagePageRenderer = new PackagePageRenderer();
+                    final ClassPageRenderer classPageRenderer = new ClassPageRenderer(resultsProvider);
 
-                    output.renderHtmlPage("index.html", model, new OverviewPageRenderer());
-                    for (PackageTestResults packageResults : model.getPackages()) {
-                        output.renderHtmlPage(packageResults.getBaseUrl(), packageResults, packagePageRenderer);
-                        for (ClassTestResults classResults : packageResults.getClasses()) {
-                            output.renderHtmlPage(classResults.getBaseUrl(), classResults, classPageRenderer);
+                    parallelRenderer.submit(new Runnable() {
+                        public void run() {
+                            output.renderHtmlPage("index.html", model, new OverviewPageRenderer());
                         }
+                    });
+                    for (final PackageTestResults packageResults : model.getPackages()) {
+                        parallelRenderer.submit(new Runnable() {
+                            public void run() {
+                                output.renderHtmlPage(packageResults.getBaseUrl(), packageResults, packagePageRenderer);
+                            }
+                        });
+                        for (final ClassTestResults classResults : packageResults.getClasses()) {
+                            parallelRenderer.submit(new Runnable() {
+                                public void run() {
+                                    output.renderHtmlPage(classResults.getBaseUrl(), classResults, classPageRenderer);
+
+                                }
+                            });
+                        }
+                    }
+                    parallelRenderer.shutdown();
+                    try {
+                        parallelRenderer.awaitTermination(1, TimeUnit.HOURS);
+                    } catch (InterruptedException e) {
+                        throw new GradleException(String.format("Timed out when generating test report to '%s'.", reportDir), e);
                     }
                 }
             }, reportDir);

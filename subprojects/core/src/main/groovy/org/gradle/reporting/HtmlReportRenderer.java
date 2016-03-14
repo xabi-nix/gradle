@@ -43,6 +43,7 @@ public class HtmlReportRenderer {
             for (Resource resource : context.resources.values()) {
                 File destFile = new File(outputDirectory, resource.path);
                 if (!destFile.exists()) {
+                    destFile.getParentFile().mkdirs();
                     GFileUtils.copyURLToFile(resource.source, destFile);
                 }
             }

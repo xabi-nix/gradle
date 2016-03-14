@@ -29,6 +29,9 @@ import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class Binary2JUnitXmlReportGenerator {
 
@@ -45,21 +48,33 @@ public class Binary2JUnitXmlReportGenerator {
 
     public void generate() {
         Clock clock = new Clock();
+        final ExecutorService executorService = Executors.newFixedThreadPool(2*Runtime.getRuntime().availableProcessors());
         testResultsProvider.visitClasses(new Action<TestClassResult>() {
-            public void execute(TestClassResult result) {
-                File file = new File(testResultsDir, getReportFileName(result));
-                OutputStream output = null;
-                try {
-                    output = new FileOutputStream(file);
-                    xmlWriter.write(result, output);
-                    output.close();
-                } catch (Exception e) {
-                    throw new GradleException(String.format("Could not write XML test results for %s to file %s.", result.getClassName(), file), e);
-                } finally {
-                    IOUtils.closeQuietly(output);
-                }
+            public void execute(final TestClassResult result) {
+                final File file = new File(testResultsDir, getReportFileName(result));
+                executorService.submit(new Runnable() {
+                    public void run() {
+                        OutputStream output = null;
+                        try {
+                            output = new FileOutputStream(file);
+                            xmlWriter.write(result, output);
+                            output.close();
+                        } catch (Exception e) {
+                            throw new GradleException(String.format("Could not write XML test results for %s to file %s.", result.getClassName(), file), e);
+                        } finally {
+                            IOUtils.closeQuietly(output);
+                        }
+                    }
+                });
+
             }
         });
+        executorService.shutdown();
+        try {
+            executorService.awaitTermination(1, TimeUnit.HOURS);
+        } catch (InterruptedException e) {
+            throw new GradleException(String.format("Timed out when generating test report to '%s'.", testResultsDir), e);
+        }
         LOG.info("Finished generating test XML results ({}) into: {}", clock.getTime(), testResultsDir);
     }
 
