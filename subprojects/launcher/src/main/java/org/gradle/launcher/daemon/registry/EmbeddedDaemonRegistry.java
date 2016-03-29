@@ -21,6 +21,7 @@ import org.gradle.launcher.daemon.context.DaemonContext;
 import org.gradle.messaging.remote.Address;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -85,7 +86,10 @@ public class EmbeddedDaemonRegistry implements DaemonRegistry {
 
     public void markIdle(Address address) {
         synchronized (daemonInfos) {
-            daemonInfos.get(address).setIdle(true);
+            final DaemonInfo daemonInfo = daemonInfos.get(address);
+            daemonInfo.setIdle(true);
+            // not strictly speaking correct but enough for now.
+            daemonInfo.setLastProcessedBuild(new Date());
         }
     }
 

@@ -28,6 +28,7 @@ import org.gradle.messaging.remote.Address;
 import org.gradle.internal.serialize.DefaultSerializer;
 
 import java.io.File;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
@@ -127,6 +128,7 @@ public class PersistentDaemonRegistry implements DaemonRegistry {
             cache.update(new PersistentStateCache.UpdateAction<DaemonRegistryContent>() {
                 public DaemonRegistryContent update(DaemonRegistryContent oldValue) {
                     DaemonInfo daemonInfo = oldValue != null ? oldValue.getInfo(address) : null;
+
                     if (daemonInfo != null) {
                         daemonInfo.setIdle(false);
                     }
@@ -146,6 +148,7 @@ public class PersistentDaemonRegistry implements DaemonRegistry {
                 public DaemonRegistryContent update(DaemonRegistryContent oldValue) {
                     DaemonInfo daemonInfo = oldValue != null ? oldValue.getInfo(address) : null;
                     if (daemonInfo != null) {
+                        daemonInfo.setLastProcessedBuild(new Date());
                         daemonInfo.setIdle(true);
                     }
                     // Else, has been removed by something else - ignore

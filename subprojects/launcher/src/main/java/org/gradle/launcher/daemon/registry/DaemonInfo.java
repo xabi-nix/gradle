@@ -21,6 +21,7 @@ import org.gradle.launcher.daemon.context.DaemonInstanceDetails;
 import org.gradle.messaging.remote.Address;
 
 import java.io.Serializable;
+import java.util.Date;
 
 /**
  * Provides information about a daemon that is potentially available to do some work.
@@ -31,6 +32,7 @@ public class DaemonInfo implements Serializable, DaemonInstanceDetails {
     private final DaemonContext context;
     private final String password;
     private boolean idle;
+    private Date lastProcessedBuild;
 
     public DaemonInfo(Address address, DaemonContext context, String password, boolean idle) {
         this.address = address;
@@ -73,4 +75,11 @@ public class DaemonInfo implements Serializable, DaemonInstanceDetails {
         return String.format("DaemonInfo{pid=%s, address=%s, idle=%s, context=%s}", context.getPid(), address, idle, context);
     }
 
+    public Date getLastProcessedBuild() {
+        return lastProcessedBuild;
+    }
+
+    public void setLastProcessedBuild(Date lastProcessedBuild) {
+        this.lastProcessedBuild = lastProcessedBuild;
+    }
 }

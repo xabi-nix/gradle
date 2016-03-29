@@ -35,7 +35,7 @@ import java.io.InputStream;
 
 /**
  * Some support wiring for daemon clients.
- * 
+ *
  * @see DaemonClientServices
  */
 public abstract class DaemonClientServicesSupport extends DefaultServiceRegistry {
@@ -73,7 +73,7 @@ public abstract class DaemonClientServicesSupport extends DefaultServiceRegistry
 
     // subclass hook, allowing us to fake the context for testing
     protected void configureDaemonContextBuilder(DaemonContextBuilder builder) {
-        
+
     }
 
     IdGenerator<?> createIdGenerator() {
@@ -85,6 +85,6 @@ public abstract class DaemonClientServicesSupport extends DefaultServiceRegistry
     }
 
     DaemonConnector createDaemonConnector(DaemonRegistry daemonRegistry, OutgoingConnector outgoingConnector, DaemonStarter daemonStarter) {
-        return new DefaultDaemonConnector(daemonRegistry, outgoingConnector, daemonStarter);
+        return new ExpireDaemonConnector(new DefaultDaemonConnector(daemonRegistry, outgoingConnector, daemonStarter), daemonRegistry);
     }
 }
