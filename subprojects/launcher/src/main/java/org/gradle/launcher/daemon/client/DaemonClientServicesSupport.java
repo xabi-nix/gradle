@@ -57,12 +57,12 @@ public abstract class DaemonClientServicesSupport extends DefaultServiceRegistry
     protected DaemonClient createDaemonClient() {
         DaemonCompatibilitySpec matchingContextSpec = new DaemonCompatibilitySpec(get(DaemonContext.class));
         return new DaemonClient(
-                get(DaemonConnector.class),
-                get(OutputEventListener.class),
-                matchingContextSpec,
-                buildStandardInput,
-                get(ExecutorFactory.class),
-                get(IdGenerator.class));
+            get(DaemonConnector.class),
+            get(OutputEventListener.class),
+            matchingContextSpec,
+            buildStandardInput,
+            get(ExecutorFactory.class),
+            get(IdGenerator.class));
     }
 
     DaemonContext createDaemonContext(ProcessEnvironment processEnvironment) {
@@ -85,6 +85,10 @@ public abstract class DaemonClientServicesSupport extends DefaultServiceRegistry
     }
 
     DaemonConnector createDaemonConnector(DaemonRegistry daemonRegistry, OutgoingConnector outgoingConnector, DaemonStarter daemonStarter) {
-        return new ExpireDaemonConnector(new DefaultDaemonConnector(daemonRegistry, outgoingConnector, daemonStarter), daemonRegistry);
+        return new ExpireDaemonConnector(new DefaultDaemonConnector(daemonRegistry, outgoingConnector, daemonStarter), daemonRegistry, getAll(DaemonExpirationStategy.class));
+    }
+
+    DaemonExpirationStategy createMaxDaemonCountExpirationStrategy() {
+        return new MaxDaemonCountExpirationStrategy(get(IdGenerator.class));
     }
 }

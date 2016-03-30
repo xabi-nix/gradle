@@ -18,30 +18,23 @@ package org.gradle.launcher.daemon.client;
 
 import org.gradle.api.Nullable;
 import org.gradle.api.internal.specs.ExplainingSpec;
-import org.gradle.internal.id.RandomLongIdGenerator;
 import org.gradle.launcher.daemon.context.DaemonContext;
 import org.gradle.launcher.daemon.context.DaemonInstanceDetails;
-import org.gradle.launcher.daemon.protocol.Stop;
 import org.gradle.launcher.daemon.registry.DaemonInfo;
 import org.gradle.launcher.daemon.registry.DaemonRegistry;
-import org.gradle.util.CollectionUtils;
 
-import java.util.Comparator;
 import java.util.List;
 
 public class ExpireDaemonConnector implements DaemonConnector {
+    private final List<DaemonExpirationStategy> expirationStrategies;
     private DefaultDaemonConnector delegate;
     private DaemonRegistry daemonRegistry;
 
-    private static String MAX_DAEMON_COUNT_SYS_PROP_KEY = "org.gradle.daemon.expiration.maxnumber";
-    private static int DEFAULT_MAX_DAEMON_COUNT = 2;
-    private final int maxDaemonCount;
-
-    public ExpireDaemonConnector(DefaultDaemonConnector delegate, DaemonRegistry daemonRegistry) {
+    public ExpireDaemonConnector(DefaultDaemonConnector delegate, DaemonRegistry daemonRegistry, List<DaemonExpirationStategy> expirationStrategies) {
         this.delegate = delegate;
-        this.maxDaemonCount = System.getProperty(MAX_DAEMON_COUNT_SYS_PROP_KEY) == null ? DEFAULT_MAX_DAEMON_COUNT : Integer.parseInt(System.getProperty(MAX_DAEMON_COUNT_SYS_PROP_KEY));
+        this.expirationStrategies = expirationStrategies;
         this.daemonRegistry = daemonRegistry;
-        System.out.println("maxDaemonCount = " + maxDaemonCount);
+        System.out.println("expirationStrategies = " + expirationStrategies.size());
     }
 
     @Nullable
@@ -59,24 +52,12 @@ public class ExpireDaemonConnector implements DaemonConnector {
     @Override
     public DaemonClientConnection connect(ExplainingSpec<DaemonContext> constraint) {
         final DaemonClientConnection connect = delegate.connect(constraint);
-        // 1st try reducing overall daemons by shutting down idle daemons
+        // for now only consider daemons in idle mode to be expired
         final List<DaemonInfo> idleDaemons = daemonRegistry.getIdle();
         // remove the one we're going to pass/use from list of potential stoppable daemons
         idleDaemons.remove(connect);
-        final List<DaemonInfo> idleDaemonsByUsage = CollectionUtils.sort(idleDaemons, new Comparator<DaemonInfo>() {
-            @Override
-            public int compare(DaemonInfo o1, DaemonInfo o2) {
-                return o1.getLastProcessedBuild().compareTo(o2.getLastProcessedBuild());
-            }
-        });
-
-        if (idleDaemonsByUsage.size() >= maxDaemonCount) {
-            for (DaemonInfo stopCandidateDaemon : idleDaemonsByUsage.subList(0, idleDaemonsByUsage.size() - maxDaemonCount + 1)) {
-                final DaemonClientConnection daemonClientConnection = delegate.maybeConnect(stopCandidateDaemon);
-                if (daemonClientConnection != null) {
-                    daemonClientConnection.dispatch(new Stop(new RandomLongIdGenerator().generateId()));
-                }
-            }
+        for (DaemonExpirationStategy expirationStrategy : expirationStrategies) {
+            expirationStrategy.maybeExpireDaemons(delegate, idleDaemons);
         }
         return connect;
     }
