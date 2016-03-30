@@ -18,10 +18,10 @@ package org.gradle.api.internal.tasks.compile;
 
 import org.gradle.internal.Factory;
 import org.gradle.internal.SystemProperties;
-import org.gradle.internal.jvm.JdkTools;
 import org.gradle.internal.jvm.Jvm;
 
 import javax.tools.JavaCompiler;
+import javax.tools.ToolProvider;
 import java.io.File;
 import java.io.Serializable;
 
@@ -78,7 +78,13 @@ public class JavaHomeBasedJavaCompilerFactory implements Factory<JavaCompiler>, 
     public static class SystemJavaCompilerFactory implements Factory<JavaCompiler>, Serializable {
         @Override
         public JavaCompiler create() {
-            return JdkTools.current().getSystemJavaCompiler();
+            // This is what the API docs say to do to get a Java Compiler.
+            return ToolProvider.getSystemJavaCompiler();
+
+            // This is what we do on master so that we can isolate the ClassLoader used to create the compiler
+            // from the "application class loader." I don't understand why we do that and haven't found any
+            // documentation yet. Who can explain it to me?
+            // return JdkTools.current().getSystemJavaCompiler();
         }
     }
 }
