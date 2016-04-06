@@ -16,6 +16,8 @@
 package org.gradle.api.internal;
 
 import groovy.lang.*;
+import org.codehaus.groovy.runtime.metaclass.MissingMethodExceptionNoStack;
+import org.codehaus.groovy.runtime.metaclass.MissingPropertyExceptionNoStack;
 
 import java.util.Map;
 import java.util.Collections;
@@ -40,8 +42,7 @@ public abstract class AbstractDynamicObject implements DynamicObject {
     }
 
     protected MissingPropertyException propertyMissingException(String name) {
-        return new MissingPropertyException(String.format("Could not find property '%s' on %s.", name,
-                getDisplayName()), name, null);
+        return new MissingPropertyExceptionNoStack(name, null);
     }
 
     public Map<String, ?> getProperties() {
@@ -65,7 +66,7 @@ public abstract class AbstractDynamicObject implements DynamicObject {
     }
 
     protected groovy.lang.MissingMethodException methodMissingException(String name, Object... params) {
-        return new MissingMethodException(this, getDisplayName(), name, params);
+        return new MissingMethodExceptionNoStack(name, this.getClass(), params);
     }
 }
 

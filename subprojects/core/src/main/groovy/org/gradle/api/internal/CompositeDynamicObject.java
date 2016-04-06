@@ -22,6 +22,7 @@ import groovy.lang.MissingPropertyException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Presents a {@link DynamicObject} view of multiple objects at once.
@@ -30,6 +31,7 @@ import java.util.Map;
  */
 public abstract class CompositeDynamicObject extends AbstractDynamicObject {
 
+    private final static AtomicInteger COUNTER = new AtomicInteger();
     private static final DynamicObject[] NONE = new DynamicObject[0];
 
     private DynamicObject[] objects = NONE;
@@ -90,6 +92,7 @@ public abstract class CompositeDynamicObject extends AbstractDynamicObject {
                     if (e.getProperty() == null || !e.getProperty().equals(name)) {
                         throw e;
                     }
+                    //System.err.println("Failed to find " + name + " on " + object + " Counter: " +COUNTER.incrementAndGet());
                 }
             }
         }

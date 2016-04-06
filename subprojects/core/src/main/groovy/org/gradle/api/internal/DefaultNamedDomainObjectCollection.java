@@ -287,7 +287,7 @@ public class DefaultNamedDomainObjectCollection<T> extends DefaultDomainObjectCo
 
     protected UnknownDomainObjectException createNotFoundException(String name) {
         return new UnknownDomainObjectException(String.format("%s with name '%s' not found.", getTypeDisplayName(),
-                name));
+            name));
     }
 
     protected String getTypeDisplayName() {
@@ -296,7 +296,12 @@ public class DefaultNamedDomainObjectCollection<T> extends DefaultDomainObjectCo
 
     private class ContainerDynamicObject extends CompositeDynamicObject {
         private ContainerDynamicObject(ContainerElementsDynamicObject elementsDynamicObject) {
-            setObjects(new BeanDynamicObject(DefaultNamedDomainObjectCollection.this), elementsDynamicObject, convention.getExtensionsAsDynamicObject());
+            DefaultNamedDomainObjectCollection<T> delegate = DefaultNamedDomainObjectCollection.this;
+            BeanDynamicObject beanDynamicObject = new BeanDynamicObject(delegate);
+            if (!BeanDynamicObject.hasMissing.getUnchecked(delegate.getClass())) {
+                beanDynamicObject = beanDynamicObject.withNotImplementsMissing();
+            }
+            setObjects(beanDynamicObject, elementsDynamicObject, convention.getExtensionsAsDynamicObject());
         }
 
         @Override

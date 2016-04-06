@@ -917,7 +917,8 @@ public class AsmBackedClassGenerator extends AbstractClassGenerator {
             if (dynamicObject != null) {
                 return (AbstractDynamicObject) dynamicObject;
             }
-            return new BeanDynamicObject(delegateObject);
+            BeanDynamicObject beanDynamicObject = new BeanDynamicObject(delegateObject);
+            return BeanDynamicObject.hasMissing.getUnchecked(delegateObject.getClass())?beanDynamicObject:beanDynamicObject.withNotImplementsMissing();
         }
     }
 

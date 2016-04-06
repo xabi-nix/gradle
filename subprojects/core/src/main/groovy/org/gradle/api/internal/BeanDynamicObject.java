@@ -15,6 +15,9 @@
  */
 package org.gradle.api.internal;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import groovy.lang.*;
 import groovy.lang.MissingMethodException;
 import org.codehaus.groovy.runtime.InvokerInvocationException;
@@ -28,6 +31,22 @@ import java.util.*;
  * A {@link DynamicObject} which uses groovy reflection to provide access to the properties and methods of a bean.
  */
 public class BeanDynamicObject extends AbstractDynamicObject {
+
+    public final static LoadingCache<Class<?>, Boolean> hasMissing = CacheBuilder.newBuilder().build(new CacheLoader<Class<?>, Boolean>() {
+        @Override
+        public Boolean load(Class<?> key) throws Exception {
+            try {
+                key.getDeclaredMethod("methodMissing", String.class, Object.class);
+            } catch (NoSuchMethodException e) {
+                try {
+                    key.getMethod("methodMissing", String.class, Object.class);
+                } catch (NoSuchMethodException e1) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    });
 
     private final Object bean;
     private final boolean includeProperties;

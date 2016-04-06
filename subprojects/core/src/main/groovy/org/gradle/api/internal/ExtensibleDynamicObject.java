@@ -73,7 +73,8 @@ public class ExtensibleDynamicObject extends CompositeDynamicObject implements H
     }
 
     private static BeanDynamicObject createDynamicObject(Object delegate) {
-        return new BeanDynamicObject(delegate);
+        BeanDynamicObject beanDynamicObject = new BeanDynamicObject(delegate);
+        return BeanDynamicObject.hasMissing.getUnchecked(delegate.getClass())?beanDynamicObject:beanDynamicObject.withNotImplementsMissing();
     }
 
     private void updateDelegates() {
