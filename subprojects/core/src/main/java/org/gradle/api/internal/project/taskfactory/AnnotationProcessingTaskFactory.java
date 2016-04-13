@@ -312,7 +312,7 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
 
                 PropertyInfo propertyInfo = new PropertyInfo(this, parent, propertyName, method, field);
 
-                attachValidationActions(propertyInfo, fieldName, field);
+                attachValidationActions(propertyInfo);
 
                 if (propertyInfo.required) {
                     properties.add(propertyInfo);
@@ -328,22 +328,16 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
             return fields;
         }
 
-        private void attachValidationActions(PropertyInfo propertyInfo, String fieldName, Field field) {
-            final Method method = propertyInfo.method;
+        private void attachValidationActions(PropertyInfo propertyInfo) {
             for (PropertyAnnotationHandler handler : HANDLERS) {
-                attachValidationAction(handler, propertyInfo, fieldName, method, field);
+                attachValidationAction(handler, propertyInfo);
             }
         }
 
-        private void attachValidationAction(PropertyAnnotationHandler handler, PropertyInfo propertyInfo, String fieldName, Method method, Field field) {
+        private void attachValidationAction(PropertyAnnotationHandler handler, PropertyInfo propertyInfo) {
             Class<? extends Annotation> annotationType = handler.getAnnotationType();
 
-            AnnotatedElement annotationTarget = null;
-            if (method.getAnnotation(annotationType) != null) {
-                annotationTarget = method;
-            } else if (field != null && field.getAnnotation(annotationType) != null) {
-                annotationTarget = field;
-            }
+            AnnotatedElement annotationTarget = propertyInfo.getAnnotatedElement(annotationType);
             if (annotationTarget == null) {
                 return;
             }
@@ -423,6 +417,16 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
 
         public AnnotatedElement getTarget() {
             return method;
+        }
+
+        public AnnotatedElement getAnnotatedElement(Class<? extends Annotation> annotationType) {
+            if (method.isAnnotationPresent(annotationType)) {
+                return method;
+            } else if (instanceVariableField != null && instanceVariableField.isAnnotationPresent(annotationType)) {
+                return instanceVariableField;
+            } else {
+                return null;
+            }
         }
 
         public void setValidationAction(ValidationAction action) {
