@@ -19,6 +19,7 @@ package org.gradle.api.internal.tasks.execution;
 import com.google.common.hash.HashCode;
 import org.gradle.api.GradleException;
 import org.gradle.api.internal.TaskInternal;
+import org.gradle.api.internal.TaskOutputsInternal;
 import org.gradle.api.internal.changedetection.taskcache.*;
 import org.gradle.api.internal.tasks.TaskExecuter;
 import org.gradle.api.internal.tasks.TaskExecutionContext;
@@ -50,31 +51,33 @@ public class SkipCachedTaskExecuter implements TaskExecuter {
     public void execute(TaskInternal task, TaskStateInternal state, TaskExecutionContext context) {
         Clock clock = new Clock();
 
-        // Do not try to cache tasks that produce no output
-        boolean hasOutputs = !task.getOutputs().getFiles().isEmpty();
+        // Do not try to cache tasks that declares no output
+        TaskOutputsInternal taskOutputs = task.getOutputs();
+        boolean declaresOutput = taskOutputs.getDeclaresOutput();
 
         // Do not cache tasks that explicitly state that they shouldn't be
         boolean shouldCache;
         try {
-            shouldCache = hasOutputs && task.getCacheIf().isSatisfiedBy(task);
+            shouldCache = declaresOutput && taskOutputs.isCacheEnabled();
         } catch (Throwable t) {
-            state.executed(new GradleException(String.format("Could not evaluate cacheIf predicate for %s.", task), t));
+            state.executed(new GradleException(String.format("Could not evaluate TaskOutput.isCacheEnabled() for %s.", task), t));
             return;
         }
 
         LOGGER.debug("Determining if {} is cached already", task);
 
-        File cacheRootDir = task.getProject().getProjectDir();
+        File cacheRootDir = null;
         HashCode cacheKey = null;
         if (shouldCache) {
             try {
+                cacheRootDir = task.getProject().getProjectDir();
                 cacheKey = taskInputHasher.createHash(task, cacheRootDir);
                 LOGGER.debug("Cache key for {} is {}", task, cacheKey);
             } catch (CacheKeyException e) {
                 LOGGER.info(String.format("Could not build cache key for task %s", task), e);
             }
         } else {
-            if (!hasOutputs) {
+            if (!declaresOutput) {
                 LOGGER.debug("Not caching {} as task declares no outputs", task);
             } else {
                 LOGGER.debug("Not caching {} as task cacheIf is false.", task);
@@ -91,7 +94,7 @@ public class SkipCachedTaskExecuter implements TaskExecuter {
                     return;
                 }
             } catch (IOException e) {
-                LOGGER.info("Could not load cached results for " + task + " with cache key " + cacheKey, e);
+                LOGGER.info(String.format("Could not load cached results for %s with cache key %s", task, cacheKey), e);
             }
         }
 
@@ -99,10 +102,10 @@ public class SkipCachedTaskExecuter implements TaskExecuter {
 
         if (cacheKey != null && state.getFailure() == null) {
             try {
-                TaskResultOutput cachedResult = taskResultPacker.pack(cacheRootDir, task.getOutputs().getFiles());
+                TaskResultOutput cachedResult = taskResultPacker.pack(cacheRootDir, taskOutputs.getFiles());
                 taskResultCache.put(cacheKey, cachedResult);
             } catch (IOException e) {
-                LOGGER.info("Could not cache results for " + task + " for cache key " + cacheKey, e);
+                LOGGER.info(String.format("Could not cache results for %s for cache key %s", task, cacheKey), e);
             }
         }
     }

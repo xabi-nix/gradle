@@ -26,6 +26,7 @@ import org.gradle.api.internal.tasks.ContextAwareTaskAction;
 import org.gradle.api.internal.tasks.TaskExecutionContext;
 import org.gradle.api.internal.tasks.execution.TaskValidator;
 import org.gradle.api.specs.Spec;
+import org.gradle.api.specs.Specs;
 import org.gradle.api.tasks.*;
 import org.gradle.api.tasks.incremental.IncrementalTaskInputs;
 import org.gradle.internal.Factory;
@@ -185,6 +186,9 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
                 }
             });
         }
+        if (taskClassInfo.cacheable) {
+            task.getOutputs().cacheIf(Specs.SATISFIES_ALL);
+        }
 
         for (Factory<Action<Task>> actionFactory : taskClassInfo.taskActions) {
             task.prependParallelSafeAction(actionFactory.create());
@@ -210,6 +214,9 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
             if (!validator.properties.isEmpty()) {
                 taskClassInfo.validator = validator;
             }
+
+            taskClassInfo.cacheable = type.isAnnotationPresent(Cacheable.class);
+
             classInfos.put(type, taskClassInfo);
         }
         return taskClassInfo;
@@ -319,6 +326,7 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
         public Validator validator;
         public List<Factory<Action<Task>>> taskActions = new ArrayList<Factory<Action<Task>>>();
         public boolean incremental;
+        public boolean cacheable;
     }
 
     private static class Validator implements Action<Task>, TaskValidator {

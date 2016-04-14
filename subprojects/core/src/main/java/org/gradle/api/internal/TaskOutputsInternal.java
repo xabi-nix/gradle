@@ -24,6 +24,16 @@ import org.gradle.api.tasks.TaskOutputs;
 public interface TaskOutputsInternal extends TaskOutputs {
     Spec<? super TaskInternal> getUpToDateSpec();
 
+    /**
+     * Returns true if the task declares any outputs.
+     */
+    boolean getDeclaresOutput();
+
+    /**
+     * Check if caching is explicitly enabled for the task outputs.
+     */
+    boolean isCacheEnabled();
+
     FileCollection getPreviousFiles();
 
     void setHistory(TaskExecutionHistory history);

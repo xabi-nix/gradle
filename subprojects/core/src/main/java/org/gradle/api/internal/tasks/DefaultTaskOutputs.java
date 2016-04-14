@@ -38,6 +38,7 @@ import static org.gradle.api.internal.tasks.TaskPropertyFiles.DEFAULT_PROPERTY;
 public class DefaultTaskOutputs implements TaskOutputsInternal {
     private final TaskPropertyFiles propertyFiles;
     private AndSpec<TaskInternal> upToDateSpec = new AndSpec<TaskInternal>();
+    private AndSpec<TaskInternal> cacheIfSpec = new AndSpec<TaskInternal>();
     private TaskExecutionHistory history;
     private final TaskInternal task;
     private final TaskMutator taskMutator;
@@ -57,6 +58,11 @@ public class DefaultTaskOutputs implements TaskOutputsInternal {
     @Override
     public Spec<? super TaskInternal> getUpToDateSpec() {
         return upToDateSpec;
+    }
+
+    @Override
+    public boolean isCacheEnabled() {
+        return !cacheIfSpec.getSpecs().isEmpty() && cacheIfSpec.isSatisfiedBy(task);
     }
 
     @Override
@@ -80,8 +86,31 @@ public class DefaultTaskOutputs implements TaskOutputsInternal {
     }
 
     @Override
+    public void cacheIf(final Closure closure) {
+        taskMutator.mutate("TaskOutputs.cacheIf(Closure)", new Runnable() {
+            public void run() {
+                cacheIfSpec = cacheIfSpec.and(closure);
+            }
+        });
+    }
+
+    @Override
+    public void cacheIf(final Spec<? super Task> spec) {
+        taskMutator.mutate("TaskOutputs.cacheIf(Spec)", new Runnable() {
+            public void run() {
+                cacheIfSpec = cacheIfSpec.and(spec);
+            }
+        });
+    }
+
+    @Override
     public boolean getHasOutput() {
-        return propertyFiles.hasEntries(Predicates.alwaysTrue()) || !upToDateSpec.getSpecs().isEmpty();
+        return getDeclaresOutput() || !upToDateSpec.getSpecs().isEmpty();
+    }
+
+    @Override
+    public boolean getDeclaresOutput() {
+        return propertyFiles.hasEntries(Predicates.alwaysTrue());
     }
 
     @Override

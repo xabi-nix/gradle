@@ -25,7 +25,6 @@ import org.gradle.api.internal.changedetection.taskcache.*
 import org.gradle.api.internal.tasks.TaskExecuter
 import org.gradle.api.internal.tasks.TaskExecutionContext
 import org.gradle.api.internal.tasks.TaskStateInternal
-import org.gradle.api.specs.Specs
 import spock.lang.Specification
 
 public class SkipCachedTaskExecuterTest extends Specification {
@@ -52,9 +51,8 @@ public class SkipCachedTaskExecuterTest extends Specification {
 
         then:
         1 * task.getOutputs() >> outputs
-        1 * outputs.getFiles() >> outputFiles
-        1 * outputFiles.isEmpty() >> false
-        1 * task.getCacheIf() >> Specs.SATISFIES_ALL
+        1 * outputs.getDeclaresOutput() >> true
+        1 * outputs.isCacheEnabled() >> true
 
         1 * taskInputHasher.createHash(task, projectDir) >> cacheKey
         1 * taskResultCache.get(cacheKey) >> cachedResult
@@ -73,21 +71,20 @@ public class SkipCachedTaskExecuterTest extends Specification {
 
         then:
         1 * task.getOutputs() >> outputs
-        1 * outputs.getFiles() >> outputFiles
-        1 * outputFiles.isEmpty() >> false
-        1 * task.getCacheIf() >> Specs.SATISFIES_ALL
+        1 * outputs.getDeclaresOutput() >> true
+        1 * outputs.isCacheEnabled() >> true
 
-        1 * taskInputHasher.createHash(task, projectDir) >> cacheKey
-        1 * taskResultCache.get(cacheKey) >> null
         1 * task.getProject() >> project
         1 * project.getProjectDir() >> projectDir
 
-        then:
-        1 * delegate.execute(task, taskState, taskContext)
-        _ * taskState.getFailure() >> null
+        1 * taskInputHasher.createHash(task, projectDir) >> cacheKey
+        1 * taskResultCache.get(cacheKey) >> null
 
         then:
-        1 * task.outputs >> outputs
+        1 * delegate.execute(task, taskState, taskContext)
+        1 * taskState.getFailure() >> null
+
+        then:
         1 * outputs.getFiles() >> outputFiles
         1 * taskResultPacker.pack(projectDir, outputFiles) >> cachedResult
         1 * taskResultCache.put(cacheKey, cachedResult)
@@ -100,9 +97,8 @@ public class SkipCachedTaskExecuterTest extends Specification {
 
         then:
         1 * task.getOutputs() >> outputs
-        1 * outputs.getFiles() >> outputFiles
-        1 * outputFiles.isEmpty() >> false
-        1 * task.getCacheIf() >> Specs.SATISFIES_ALL
+        1 * outputs.getDeclaresOutput() >> true
+        1 * outputs.isCacheEnabled() >> true
 
         1 * taskInputHasher.createHash(task, projectDir) >> cacheKey
         1 * taskResultCache.get(cacheKey) >> null
@@ -121,10 +117,7 @@ public class SkipCachedTaskExecuterTest extends Specification {
 
         then:
         1 * task.getOutputs() >> outputs
-        1 * outputs.getFiles() >> outputFiles
-        1 * outputFiles.isEmpty() >> true
-        1 * task.getProject() >> project
-        1 * project.getProjectDir() >> projectDir
+        1 * outputs.getDeclaresOutput() >> false
 
         then:
         1 * delegate.execute(task, taskState, taskContext)
@@ -137,11 +130,8 @@ public class SkipCachedTaskExecuterTest extends Specification {
 
         then:
         1 * task.getOutputs() >> outputs
-        1 * outputs.getFiles() >> outputFiles
-        1 * outputFiles.isEmpty() >> false
-        1 * task.getCacheIf() >> Specs.SATISFIES_NONE
-        1 * task.getProject() >> project
-        1 * project.getProjectDir() >> projectDir
+        1 * outputs.getDeclaresOutput() >> true
+        1 * outputs.isCacheEnabled() >> false
 
         then:
         1 * delegate.execute(task, taskState, taskContext)
