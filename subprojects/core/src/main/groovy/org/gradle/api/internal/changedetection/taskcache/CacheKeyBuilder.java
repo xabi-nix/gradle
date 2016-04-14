@@ -127,7 +127,7 @@ public class CacheKeyBuilder {
     }
 
     private void putCollection(Collection<?> collection) {
-        // TODO Make sure self-referencing collections don't create infinite loops
+        // TODO:LPTR Make sure self-referencing collections don't create infinite loops
         hasher.putLong(COLLECTION);
         hasher.putInt(collection.size());
         for (Object item : collection) {
@@ -136,7 +136,7 @@ public class CacheKeyBuilder {
     }
 
     private void putMap(Map<?, ?> map) {
-        // TODO Make sure self-referencing maps don't create infinite loops
+        // TODO:LPTR Make sure self-referencing maps don't create infinite loops
         hasher.putLong(MAP);
         hasher.putInt(map.size());
         for (Map.Entry<?, ?> entry : map.entrySet()) {

@@ -69,7 +69,6 @@ public class DefaultTaskInputs implements TaskInputs {
 
     @Override
     public void appendToCacheKey(CacheKeyBuilder keyBuilder) {
-        // TODO Allow specifying file ordering and path mode for @Input properties
         keyBuilder.put(properties);
         propertyFiles.appendToCacheKey(keyBuilder, true);
     }

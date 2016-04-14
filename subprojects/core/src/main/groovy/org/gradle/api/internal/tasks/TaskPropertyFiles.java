@@ -91,30 +91,30 @@ public class TaskPropertyFiles {
         for (Entry entry : entries) {
             String property = entry.getProperty();
             if (!property.equals(previousProperty)) {
-                // TODO Add some delimiter
+                // TODO:LPTR Add some delimiter
                 keyBuilder.put(property);
             }
             FileCollection files = entry.resolve(resolver);
-            // TODO Handle ordering
+            // TODO:LPTR Handle ordering
             for (File file : files) {
                 switch (entry.getPathMode()) {
                     case ABSOLUTE:
-                        // TODO Add some delimiter
+                        // TODO:LPTR Add some delimiter
                         keyBuilder.put(file.getAbsolutePath());
                         break;
                     case HIERARCHY_ONLY:
-                        // TODO Add some different delimiter
-                        // TODO Figure out place in hierarchy properly
+                        // TODO:LPTR Add some different delimiter
+                        // TODO:LPTR Figure out place in hierarchy properly
                         keyBuilder.put(file.getName());
                         break;
                     case IGNORE:
                         break;
                 }
 
-                // TODO Handle file contents for directories
+                // TODO:LPTR Handle file contents for directories
                 if (file.isFile() && useFileContents && entry.getContentsMode() == FileContentsMode.USE) {
-                    // TODO Add some delimiter
-                    // TODO Use pre-calculated, locally cached hash instead
+                    // TODO:LPTR Add some delimiter
+                    // TODO:LPTR Use pre-calculated, locally cached hash instead
                     keyBuilder.put(Files.asByteSource(file));
                     break;
                 }
