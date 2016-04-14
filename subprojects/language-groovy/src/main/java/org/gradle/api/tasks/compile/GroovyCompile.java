@@ -31,6 +31,8 @@ import java.io.File;
 /**
  * Compiles Groovy source files, and optionally, Java source files.
  */
+// TODO:LPTR Groovy <2.4 used to add timestamp to .class files, figure out how to handle that related to caching
+@CacheableTask
 public class GroovyCompile extends AbstractCompile {
     private Compiler<GroovyJavaJointCompileSpec> compiler;
     private FileCollection groovyClasspath;
