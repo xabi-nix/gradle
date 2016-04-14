@@ -60,7 +60,7 @@ class CachedTaskExecutionIntegrationTest extends AbstractIntegrationSpec {
 
     def "task with cacheIf off doesn't get cached"() {
         buildFile << """
-            compileJava.cacheIf { false }
+            compileJava.outputs.cacheIf { false }
         """
 
         expect:
@@ -73,7 +73,7 @@ class CachedTaskExecutionIntegrationTest extends AbstractIntegrationSpec {
     }
 
     def succeedsWithCache(String... tasks) {
-        executer.withArguments "-Dorg.gradle.cache.tasks=true", "-Dorg.gradle.cache.tasks.directory=" + cacheDir.absolutePath
+        executer.withArguments "-Dorg.gradle.cache.tasks=true", "-Dorg.gradle.cache.tasks.directory=" + cacheDir
         succeeds tasks
     }
 }
