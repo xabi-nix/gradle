@@ -73,10 +73,7 @@ public class DslObject implements DynamicObjectAware, ExtensionAware, IConventio
     }
 
     public Class getDeclaredType() {
-        if (object instanceof DynamicObjectAware) {
-            return object.getClass().getSuperclass();
-        }
-        return object.getClass();
+        return DynamicObjectUtil.getDeclaredType(object);
     }
 
     private static <T> T toType(Object delegate, Class<T> type) {

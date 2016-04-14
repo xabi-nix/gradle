@@ -19,6 +19,7 @@ import com.google.common.collect.Maps;
 import org.gradle.api.*;
 import org.gradle.api.internal.AbstractTask;
 import org.gradle.api.internal.ConventionTask;
+import org.gradle.api.internal.DynamicObjectUtil;
 import org.gradle.api.internal.TaskInternal;
 import org.gradle.api.internal.changedetection.TaskArtifactState;
 import org.gradle.api.internal.project.ProjectInternal;
@@ -215,7 +216,8 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
                 taskClassInfo.validator = validator;
             }
 
-            taskClassInfo.cacheable = type.isAnnotationPresent(Cacheable.class);
+            Class<?> declaredType = DynamicObjectUtil.getDeclaredType(type);
+            taskClassInfo.cacheable = declaredType.isAnnotationPresent(Cacheable.class);
 
             classInfos.put(type, taskClassInfo);
         }

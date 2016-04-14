@@ -30,4 +30,18 @@ public abstract class DynamicObjectUtil {
             return new BeanDynamicObject(object);
         }
     }
+
+    public static Class<?> getDeclaredType(Object object) {
+        if (object instanceof DynamicObjectAware) {
+            return object.getClass().getSuperclass();
+        }
+        return object.getClass();
+    }
+
+    public static <T> Class<? super T> getDeclaredType(Class<T> type) {
+        if (DynamicObjectAware.class.isAssignableFrom(type)) {
+            return type.getSuperclass();
+        }
+        return type;
+    }
 }
