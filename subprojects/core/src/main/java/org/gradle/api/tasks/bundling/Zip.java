@@ -66,6 +66,7 @@ public class Zip extends AbstractArchiveTask {
      *
      * @return the compression level of the archive contents.
      */
+    @Input
     public ZipEntryCompression getEntryCompression() {
         return entryCompression;
     }
@@ -102,6 +103,7 @@ public class Zip extends AbstractArchiveTask {
      * This means you should not enable this property if you are building JARs to be used with Java 6 and earlier runtimes.
      */
     @Incubating
+    @Input
     public boolean isZip64() {
         return allowZip64;
     }
