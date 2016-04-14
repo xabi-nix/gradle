@@ -23,6 +23,8 @@ import org.gradle.api.internal.project.IsolatedAntBuilder;
 import org.gradle.api.logging.LogLevel;
 import org.gradle.api.resources.TextResource;
 import org.gradle.api.tasks.*;
+import org.gradle.api.tasks.Optional;
+import org.gradle.util.SingleMessageLogger;
 
 import java.io.File;
 import java.io.Serializable;
@@ -31,8 +33,6 @@ import java.util.*;
 // This import must be here due to a clash in Java 8 between this and java.util.Optional.
 // Be careful running “Optimize Imports” as it will wipe this out.
 // If there's no import below this comment, this has happened.
-import org.gradle.api.tasks.Optional;
-import org.gradle.util.SingleMessageLogger;
 
 /**
  * <p>Generates HTML API documentation for Groovy source, and optionally, Java source.
@@ -110,7 +110,7 @@ public class Groovydoc extends SourceTask {
      *
      * @return The classpath containing the Groovy library to be used
      */
-    @InputFiles
+    @InputFiles(paths = FilePathMode.IGNORE)
     public FileCollection getGroovyClasspath() {
         return groovyClasspath;
     }
@@ -127,7 +127,7 @@ public class Groovydoc extends SourceTask {
      *
      * @return The classpath used to locate classes referenced by the documented sources
      */
-    @InputFiles
+    @InputFiles(paths = FilePathMode.IGNORE)
     public FileCollection getClasspath() {
         return classpath;
     }

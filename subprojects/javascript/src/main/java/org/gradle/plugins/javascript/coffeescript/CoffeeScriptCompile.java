@@ -20,10 +20,7 @@ import groovy.lang.Closure;
 import org.gradle.api.Action;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.logging.LogLevel;
-import org.gradle.api.tasks.InputFiles;
-import org.gradle.api.tasks.OutputDirectory;
-import org.gradle.api.tasks.SourceTask;
-import org.gradle.api.tasks.TaskAction;
+import org.gradle.api.tasks.*;
 import org.gradle.plugins.javascript.coffeescript.compile.internal.DefaultCoffeeScriptCompileSpec;
 import org.gradle.plugins.javascript.coffeescript.compile.internal.rhino.RhinoCoffeeScriptCompiler;
 import org.gradle.plugins.javascript.rhino.worker.RhinoWorkerHandleFactory;
@@ -54,7 +51,7 @@ public class CoffeeScriptCompile extends SourceTask {
         this.coffeeScriptJs = coffeeScriptJs;
     }
 
-    @InputFiles
+    @InputFiles(paths = FilePathMode.IGNORE)
     public FileCollection getRhinoClasspath() {
         return getProject().files(rhinoClasspath);
     }

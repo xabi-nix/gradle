@@ -51,7 +51,7 @@ public class JsHint extends SourceTask {
         throw new UnsupportedOperationException();
     }
 
-    @InputFiles
+    @InputFiles(paths = FilePathMode.IGNORE)
     public FileCollection getRhinoClasspath() {
         return getProject().files(rhinoClasspath);
     }

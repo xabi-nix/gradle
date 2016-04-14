@@ -19,6 +19,7 @@ package org.gradle.api.tasks.bundling
 import org.gradle.api.file.CopySpec
 import org.gradle.api.file.FileCollection
 import org.gradle.api.internal.file.copy.DefaultCopySpec
+import org.gradle.api.tasks.FilePathMode
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Optional
@@ -87,7 +88,7 @@ class War extends Jar {
      *
      * @return The classpath. Returns an empty collection when there is no classpath to include in the WAR.
      */
-    @InputFiles @Optional
+    @InputFiles(paths = FilePathMode.IGNORE) @Optional
     FileCollection getClasspath() {
         return classpath
     }

@@ -215,7 +215,7 @@ public class CreateStartScripts extends ConventionTask {
     /**
      * The class path for the application.
      */
-    @InputFiles
+    @InputFiles(paths = FilePathMode.IGNORE)
     public FileCollection getClasspath() {
         return classpath;
     }

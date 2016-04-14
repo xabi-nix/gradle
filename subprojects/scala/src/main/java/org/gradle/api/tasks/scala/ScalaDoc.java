@@ -57,7 +57,7 @@ public class ScalaDoc extends SourceTask {
      *
      * @return The classpath.
      */
-    @InputFiles
+    @InputFiles(paths = FilePathMode.IGNORE)
     public FileCollection getClasspath() {
         return classpath;
     }
@@ -69,7 +69,7 @@ public class ScalaDoc extends SourceTask {
     /**
      * Returns the classpath to use to load the ScalaDoc tool.
      */
-    @InputFiles
+    @InputFiles(paths = FilePathMode.IGNORE)
     public FileCollection getScalaClasspath() {
         return scalaClasspath;
     }

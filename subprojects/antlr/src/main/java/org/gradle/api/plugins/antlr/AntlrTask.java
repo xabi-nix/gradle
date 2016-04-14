@@ -148,7 +148,7 @@ public class AntlrTask extends SourceTask {
      *
      * @return The Ant task implementation classpath.
      */
-    @InputFiles
+    @InputFiles(paths = FilePathMode.IGNORE)
     public FileCollection getAntlrClasspath() {
         return antlrClasspath;
     }

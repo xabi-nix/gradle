@@ -22,10 +22,7 @@ import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.api.internal.tasks.compile.*;
 import org.gradle.api.internal.tasks.compile.daemon.CompilerDaemonManager;
 import org.gradle.api.internal.tasks.compile.daemon.InProcessCompilerDaemonFactory;
-import org.gradle.api.tasks.InputFiles;
-import org.gradle.api.tasks.Nested;
-import org.gradle.api.tasks.TaskAction;
-import org.gradle.api.tasks.WorkResult;
+import org.gradle.api.tasks.*;
 import org.gradle.language.base.internal.compile.Compiler;
 import org.gradle.util.GFileUtils;
 
@@ -115,7 +112,7 @@ public class GroovyCompile extends AbstractCompile {
      *
      * @return The classpath.
      */
-    @InputFiles
+    @InputFiles(paths = FilePathMode.IGNORE)
     public FileCollection getGroovyClasspath() {
         return groovyClasspath;
     }

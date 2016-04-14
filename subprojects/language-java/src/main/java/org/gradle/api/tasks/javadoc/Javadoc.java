@@ -242,7 +242,7 @@ public class Javadoc extends SourceTask {
      *
      * @return The classpath.
      */
-    @InputFiles
+    @InputFiles(paths = FilePathMode.IGNORE)
     public FileCollection getClasspath() {
         return classpath;
     }

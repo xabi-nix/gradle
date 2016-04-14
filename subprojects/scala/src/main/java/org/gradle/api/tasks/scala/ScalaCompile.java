@@ -23,6 +23,7 @@ import org.gradle.api.internal.tasks.compile.JavaCompilerFactory;
 import org.gradle.api.internal.tasks.compile.daemon.CompilerDaemonFactory;
 import org.gradle.api.internal.tasks.compile.daemon.CompilerDaemonManager;
 import org.gradle.api.internal.tasks.scala.*;
+import org.gradle.api.tasks.FilePathMode;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Nested;
 import org.gradle.language.scala.tasks.AbstractScalaCompile;
@@ -53,7 +54,7 @@ public class ScalaCompile extends AbstractScalaCompile {
     /**
      * Returns the classpath to use to load the Scala compiler.
      */
-    @InputFiles
+    @InputFiles(paths = FilePathMode.IGNORE)
     public FileCollection getScalaClasspath() {
         return scalaClasspath;
     }
@@ -65,7 +66,7 @@ public class ScalaCompile extends AbstractScalaCompile {
     /**
      * Returns the classpath to use to load the Zinc incremental compiler. This compiler in turn loads the Scala compiler.
      */
-    @InputFiles
+    @InputFiles(paths = FilePathMode.IGNORE)
     public FileCollection getZincClasspath() {
         return zincClasspath;
     }

@@ -24,6 +24,7 @@ import org.gradle.api.UncheckedIOException;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.hash.DefaultHasher;
 import org.gradle.api.internal.initialization.loadercache.HashClassPathSnapshotter;
+import org.gradle.api.tasks.FilePathMode;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
@@ -52,7 +53,7 @@ public class PluginUnderTestMetadata extends DefaultTask {
     /**
      * The code under test. Defaults to {@code sourceSets.main.runtimeClasspath}.
      */
-    @InputFiles
+    @InputFiles(paths = FilePathMode.IGNORE)
     public FileCollection getPluginClasspath() {
         return pluginClasspath;
     }
