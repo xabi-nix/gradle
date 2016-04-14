@@ -80,7 +80,7 @@ public class SkipCachedTaskExecuter implements TaskExecuter {
             if (!declaresOutput) {
                 LOGGER.debug("Not caching {} as task declares no outputs", task);
             } else {
-                LOGGER.debug("Not caching {} as task cacheIf is false.", task);
+                LOGGER.debug("Not caching {} as task output is not cacheable.", task);
             }
         }
 
