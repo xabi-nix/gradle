@@ -114,7 +114,7 @@ public class TaskPropertyFiles {
                 if (useFileContents && entry.getContentsMode() == FileContentsMode.USE) {
                     // TODO Add some delimiter
                     // TODO Use pre-calculated, locally cached hash instead
-                    keyBuilder.putBytes(Files.asByteSource(file));
+                    keyBuilder.put(Files.asByteSource(file));
                     break;
                 }
             }

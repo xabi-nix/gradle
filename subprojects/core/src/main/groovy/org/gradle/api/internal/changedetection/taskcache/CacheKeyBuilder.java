@@ -28,13 +28,12 @@ import org.gradle.api.file.FileCollection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.concurrent.Callable;
 
 public class CacheKeyBuilder {
     private static final Logger LOGGER = LoggerFactory.getLogger(CacheKeyBuilder.class);
@@ -49,19 +48,40 @@ public class CacheKeyBuilder {
     private final String rootPath;
     private final Hasher hasher;
     private final OutputStream hasherStream;
+    private ByteArrayOutputStream objectBuffer;
+    private ObjectOutputStream hasherObjectStream;
 
-    private CacheKeyBuilder(String rootPath, Hasher hasher, OutputStream outputStream) {
-        this.rootPath = rootPath;
-        this.hasher = hasher;
-        this.hasherStream = outputStream;
-    }
-
-    public static CacheKeyBuilder builder(File rootDir) {
-        Hasher hasher = Hashing.md5().newHasher();
-        return new CacheKeyBuilder(rootDir.getAbsolutePath(), hasher, Funnels.asOutputStream(hasher));
+    public CacheKeyBuilder(File rootDir) {
+        this.rootPath = rootDir.getAbsolutePath();
+        this.hasher = Hashing.md5().newHasher();
+        this.hasherStream = Funnels.asOutputStream(hasher);
     }
 
     public void put(Object value) {
+        try {
+            if (value instanceof Callable) {
+                put(((Callable<?>) value).call());
+            } else if (value instanceof File) {
+                putFile((File) value);
+            } else if (value instanceof FileCollection) {
+                Set<File> files = ((FileCollection) value).getFiles();
+                if (!(files instanceof SortedSet)) {
+                    files = ImmutableSortedSet.copyOf(files);
+                }
+                putCollection(files);
+            } else if (value instanceof Collection) {
+                putCollection((Collection) value);
+            } else if (value instanceof Map) {
+                putMap((Map<?, ?>) value);
+            } else {
+                putInternal(value);
+            }
+        } catch (Exception e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    private void putInternal(Object value) throws IOException {
         LOGGER.debug("Digesting {} for cache key", value);
         if (value == null) {
             hasher.putLong(NULL);
@@ -83,28 +103,22 @@ public class CacheKeyBuilder {
             hasher.putFloat((Float) value);
         } else if (value instanceof Double) {
             hasher.putDouble((Double) value);
-        } else if (value instanceof File) {
-            putFile((File) value);
-        } else if (value instanceof FileCollection) {
-            Set<File> files = ((FileCollection) value).getFiles();
-            if (!(files instanceof SortedSet)) {
-                files = ImmutableSortedSet.copyOf(files);
-            }
-            putCollection(files);
-        } else if (value instanceof Collection) {
-            putCollection((Collection) value);
-        } else if (value instanceof Map) {
-            putMap((Map<?, ?>) value);
+        } else if (value instanceof ByteSource) {
+            ((ByteSource) value).copyTo(hasherStream);
         } else {
-            hasher.putInt(value.hashCode());
-        }
-    }
+            if (hasherObjectStream == null) {
+                objectBuffer = new ByteArrayOutputStream();
+                hasherObjectStream = new ObjectOutputStream(objectBuffer);
+                hasherObjectStream.flush();
+                objectBuffer.reset();
+            }
 
-    public void putBytes(ByteSource source) {
-        try {
-            source.copyTo(hasherStream);
-        } catch (IOException e) {
-            throw Throwables.propagate(e);
+            // Cache key elements must be serializable
+            hasherObjectStream.writeObject(value);
+            hasherObjectStream.flush();
+
+            objectBuffer.writeTo(hasherStream);
+            objectBuffer.reset();
         }
     }
 

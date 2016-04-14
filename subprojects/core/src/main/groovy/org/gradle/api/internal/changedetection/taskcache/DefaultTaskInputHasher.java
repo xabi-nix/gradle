@@ -31,7 +31,7 @@ public class DefaultTaskInputHasher implements TaskInputHasher {
 
     @Override
     public HashCode createHash(TaskInternal task, File cacheRootDir) {
-        CacheKeyBuilder cacheKeyBuilder = CacheKeyBuilder.builder(cacheRootDir);
+        CacheKeyBuilder cacheKeyBuilder = new CacheKeyBuilder(cacheRootDir);
 
         // Make sure if cache format changes we don't have collisions
         cacheKeyBuilder.put(cacheVersion);
