@@ -217,7 +217,7 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
             }
 
             Class<?> declaredType = DynamicObjectUtil.getDeclaredType(type);
-            taskClassInfo.cacheable = declaredType.isAnnotationPresent(Cacheable.class);
+            taskClassInfo.cacheable = declaredType.isAnnotationPresent(CacheableTask.class);
 
             classInfos.put(type, taskClassInfo);
         }
