@@ -38,7 +38,7 @@ class CachedTaskExecutionIntegrationTest extends AbstractIntegrationSpec {
         """
     }
 
-    def "tasks get cached"() {
+    def "no task is re-executed when inputs are unchanged"() {
         expect:
         succeedsWithCache "assemble"
         skippedTasks.empty
@@ -47,6 +47,21 @@ class CachedTaskExecutionIntegrationTest extends AbstractIntegrationSpec {
 
         succeedsWithCache "assemble"
         nonSkippedTasks.empty
+    }
+
+    def "tasks get cached when source code changes without changing the compiled output"() {
+        expect:
+        succeedsWithCache "assemble"
+        skippedTasks.empty
+
+        file("src/main/java/Hello.java") << """
+            // Change to source file without compiled result change
+        """
+        succeedsWithCache "clean"
+
+        succeedsWithCache "assemble"
+        nonSkippedTasks.containsAll ":compileJava"
+        skippedTasks.containsAll ":processResources", ":jar"
     }
 
     def "clean doesn't get cached"() {
@@ -58,7 +73,7 @@ class CachedTaskExecutionIntegrationTest extends AbstractIntegrationSpec {
         nonSkippedTasks.contains ":clean"
     }
 
-    def "task with cacheIf off doesn't get cached"() {
+    def "task with cache disabled doesn't get cached"() {
         buildFile << """
             compileJava.outputs.cacheIf { false }
         """
