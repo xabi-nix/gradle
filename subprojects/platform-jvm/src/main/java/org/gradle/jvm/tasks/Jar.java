@@ -27,6 +27,7 @@ import org.gradle.api.internal.file.copy.CopySpecInternal;
 import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.api.java.archives.Manifest;
 import org.gradle.api.java.archives.internal.DefaultManifest;
+import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.ParallelizableTask;
 import org.gradle.api.tasks.bundling.Zip;
@@ -39,6 +40,7 @@ import java.util.concurrent.Callable;
  * Assembles a JAR archive.
  */
 @ParallelizableTask
+@CacheableTask
 @Incubating
 public class Jar extends Zip {
 

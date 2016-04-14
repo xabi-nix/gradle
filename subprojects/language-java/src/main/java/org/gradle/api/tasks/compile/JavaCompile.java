@@ -61,6 +61,7 @@ import java.io.File;
  * </pre>
  */
 @ParallelizableTask
+@CacheableTask
 public class JavaCompile extends AbstractCompile {
     private File dependencyCacheDir;
     private final CompileOptions compileOptions = new CompileOptions();
