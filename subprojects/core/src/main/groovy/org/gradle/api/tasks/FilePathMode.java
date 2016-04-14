@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 the original author or authors.
+ * Copyright 2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,24 @@
  * limitations under the License.
  */
 
-package org.gradle.api.internal;
+package org.gradle.api.tasks;
 
-import org.gradle.api.file.FileCollection;
-import org.gradle.api.internal.changedetection.taskcache.CacheKeyBuilder;
-import org.gradle.api.specs.Spec;
-import org.gradle.api.tasks.TaskOutputs;
+/**
+ * How to handle file paths when comparing files.
+ */
+public enum FilePathMode {
+    /**
+     * Consider the absolute file path.
+     */
+    ABSOLUTE,
 
-public interface TaskOutputsInternal extends TaskOutputs {
-    Spec<? super TaskInternal> getUpToDateSpec();
+    /**
+     * Consider only the place of each file in a file hierarchy.
+     */
+    HIERARCHY_ONLY,
 
-    FileCollection getPreviousFiles();
-
-    void setHistory(TaskExecutionHistory history);
-
-    void appendToCacheKey(CacheKeyBuilder keyBuilder);
+    /**
+     * Ignore the path completely.
+     */
+    IGNORE
 }

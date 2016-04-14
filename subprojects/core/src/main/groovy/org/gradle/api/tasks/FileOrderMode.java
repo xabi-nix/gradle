@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 the original author or authors.
+ * Copyright 2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-package org.gradle.api.internal;
+package org.gradle.api.tasks;
 
-import org.gradle.api.file.FileCollection;
-import org.gradle.api.internal.changedetection.taskcache.CacheKeyBuilder;
-import org.gradle.api.specs.Spec;
-import org.gradle.api.tasks.TaskOutputs;
+/**
+ * In what order should files be considered when comparing file collections.
+ */
+public enum FileOrderMode {
+    /**
+     * Use the order provided by `getFiles()`.
+     */
+    UNORDERED,
 
-public interface TaskOutputsInternal extends TaskOutputs {
-    Spec<? super TaskInternal> getUpToDateSpec();
-
-    FileCollection getPreviousFiles();
-
-    void setHistory(TaskExecutionHistory history);
-
-    void appendToCacheKey(CacheKeyBuilder keyBuilder);
+    /**
+     * Order the files.
+     */
+    ORDERED
 }

@@ -23,7 +23,7 @@ import com.google.common.hash.Funnels;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
-import com.google.common.io.Files;
+import com.google.common.io.ByteSource;
 import org.gradle.api.file.FileCollection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,22 +49,16 @@ public class CacheKeyBuilder {
     private final String rootPath;
     private final Hasher hasher;
     private final OutputStream hasherStream;
-    private final boolean includeFileContents;
 
-    private CacheKeyBuilder(String rootPath, Hasher hasher, OutputStream outputStream, boolean includeFileContents) {
+    private CacheKeyBuilder(String rootPath, Hasher hasher, OutputStream outputStream) {
         this.rootPath = rootPath;
         this.hasher = hasher;
         this.hasherStream = outputStream;
-        this.includeFileContents = includeFileContents;
     }
 
     public static CacheKeyBuilder builder(File rootDir) {
         Hasher hasher = Hashing.md5().newHasher();
-        return new CacheKeyBuilder(rootDir.getAbsolutePath(), hasher, Funnels.asOutputStream(hasher), true);
-    }
-
-    public CacheKeyBuilder withoutFileContents() {
-        return new CacheKeyBuilder(rootPath, hasher, hasherStream, false);
+        return new CacheKeyBuilder(rootDir.getAbsolutePath(), hasher, Funnels.asOutputStream(hasher));
     }
 
     public void put(Object value) {
@@ -106,6 +100,14 @@ public class CacheKeyBuilder {
         }
     }
 
+    public void putBytes(ByteSource source) {
+        try {
+            source.copyTo(hasherStream);
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
     public HashCode build() {
         return hasher.hash();
     }
@@ -136,13 +138,6 @@ public class CacheKeyBuilder {
             hasher.putLong(DIRECTORY);
         } else {
             hasher.putLong(FILE);
-            if (includeFileContents) {
-                try {
-                    Files.asByteSource(file).copyTo(hasherStream);
-                } catch (IOException e) {
-                    throw Throwables.propagate(e);
-                }
-            }
         }
         putFilePath(file);
     }

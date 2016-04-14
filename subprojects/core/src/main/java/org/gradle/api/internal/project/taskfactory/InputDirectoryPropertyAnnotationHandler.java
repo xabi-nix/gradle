@@ -22,6 +22,7 @@ import org.gradle.api.tasks.SkipWhenEmpty;
 
 import java.io.File;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedElement;
 import java.util.Collection;
 import java.util.concurrent.Callable;
 
@@ -41,15 +42,17 @@ public class InputDirectoryPropertyAnnotationHandler implements PropertyAnnotati
         return InputDirectory.class;
     }
 
-    public void attachActions(PropertyActionContext context) {
+    public void attachActions(final PropertyActionContext context) {
         context.setValidationAction(inputDirValidation);
-        final boolean isSourceDir = context.getTarget().getAnnotation(SkipWhenEmpty.class) != null;
+        AnnotatedElement target = context.getAnnotatedElement(InputDirectory.class);
+        final InputDirectory annotation = target.getAnnotation(InputDirectory.class);
+        final boolean skipWhenEmpty = target.isAnnotationPresent(SkipWhenEmpty.class);
         context.setConfigureAction(new UpdateAction() {
             public void update(TaskInternal task, Callable<Object> futureValue) {
-                if (isSourceDir) {
-                    task.getInputs().sourceDir(futureValue);
+                if (skipWhenEmpty) {
+                    task.getInputs().sourceDir(context.getName(), annotation.order(), annotation.paths(), annotation.contents(), futureValue);
                 } else {
-                    task.getInputs().dir(futureValue);
+                    task.getInputs().dir(context.getName(), annotation.order(), annotation.paths(), annotation.contents(), futureValue);
                 }
             }
         });

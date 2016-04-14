@@ -18,7 +18,6 @@ package org.gradle.api.internal.changedetection.taskcache;
 
 import com.google.common.hash.HashCode;
 import org.gradle.api.internal.TaskInternal;
-import org.gradle.api.tasks.TaskInputs;
 
 import java.io.File;
 
@@ -36,11 +35,8 @@ public class DefaultTaskInputHasher implements TaskInputHasher {
 
         // Make sure if cache format changes we don't have collisions
         cacheKeyBuilder.put(cacheVersion);
-
-        TaskInputs inputs = task.getInputs();
-        cacheKeyBuilder.put(inputs.getProperties());
-        cacheKeyBuilder.put(inputs.getFiles());
-        cacheKeyBuilder.withoutFileContents().put(task.getOutputs().getFiles());
+        task.getInputs().appendToCacheKey(cacheKeyBuilder);
+        task.getOutputs().appendToCacheKey(cacheKeyBuilder);
         return cacheKeyBuilder.build();
     }
 }

@@ -15,11 +15,13 @@
  */
 package org.gradle.api.internal.project.taskfactory;
 
+import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.TaskInternal;
 import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.internal.reflect.Instantiator;
 
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 /**
  * A {@link ITaskFactory} which wires the dependencies of a task based on its input files.
@@ -44,8 +46,13 @@ public class DependencyAutoWireTaskFactory implements ITaskFactory {
         return autoWire(taskFactory.create(name, type));
     }
 
-    private <S extends TaskInternal> S autoWire(S task) {
-        task.dependsOn(task.getInputs().getFiles());
+    private <S extends TaskInternal> S autoWire(final S task) {
+        task.dependsOn(new Callable<FileCollection>() {
+            @Override
+            public FileCollection call() throws Exception {
+                return task.getInputs().getFiles();
+            }
+        });
         return task;
     }
 }

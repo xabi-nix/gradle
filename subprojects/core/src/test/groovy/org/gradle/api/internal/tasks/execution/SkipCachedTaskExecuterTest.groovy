@@ -123,6 +123,8 @@ public class SkipCachedTaskExecuterTest extends Specification {
         1 * task.getOutputs() >> outputs
         1 * outputs.getFiles() >> outputFiles
         1 * outputFiles.isEmpty() >> true
+        1 * task.getProject() >> project
+        1 * project.getProjectDir() >> projectDir
 
         then:
         1 * delegate.execute(task, taskState, taskContext)
@@ -138,6 +140,8 @@ public class SkipCachedTaskExecuterTest extends Specification {
         1 * outputs.getFiles() >> outputFiles
         1 * outputFiles.isEmpty() >> false
         1 * task.getCacheIf() >> Specs.SATISFIES_NONE
+        1 * task.getProject() >> project
+        1 * project.getProjectDir() >> projectDir
 
         then:
         1 * delegate.execute(task, taskState, taskContext)

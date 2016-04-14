@@ -30,4 +30,6 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.FIELD})
 public @interface InputFile {
+    FilePathMode path() default FilePathMode.ABSOLUTE;
+    FileContentsMode contents() default FileContentsMode.USE;
 }

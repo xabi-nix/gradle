@@ -17,6 +17,7 @@
 package org.gradle.api.tasks;
 
 import org.gradle.api.file.FileCollection;
+import org.gradle.api.internal.changedetection.taskcache.CacheKeyBuilder;
 
 import java.util.Map;
 
@@ -48,6 +49,8 @@ public interface TaskInputs {
      */
     TaskInputs files(Object... paths);
 
+    TaskInputs files(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object... paths);
+
     /**
      * Registers some input file for this task.
      *
@@ -55,6 +58,8 @@ public interface TaskInputs {
      * @return this
      */
     TaskInputs file(Object path);
+
+    TaskInputs file(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object path);
 
     /**
      * Registers an input directory hierarchy. All files found under the given directory are treated as input files for
@@ -65,12 +70,17 @@ public interface TaskInputs {
      */
     TaskInputs dir(Object dirPath);
 
+    TaskInputs dir(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object path);
+
     /**
      * Returns the set of input properties for this task.
      *
      * @return The properties.
      */
     Map<String, Object> getProperties();
+
+    // TODO Move this to internal interface
+    void appendToCacheKey(CacheKeyBuilder keyBuilder);
 
     /**
      * <p>Registers an input property for this task. This value is persisted when the task executes, and is compared
@@ -118,6 +128,8 @@ public interface TaskInputs {
      */
     TaskInputs source(Object... paths);
 
+    TaskInputs source(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object... paths);
+
     /**
      * Registers some source files for this task. Note that source files are also considered input files, so calling this method implies
      * a call to {@link #files(Object...)}.
@@ -127,6 +139,8 @@ public interface TaskInputs {
      */
     TaskInputs source(Object path);
 
+    TaskInputs source(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object path);
+
     /**
      * Registers a source directory for this task. All files under this directory are treated as source files for this task. Note that
      * source files are also considered input files, so calling this method implies a call to {@link #dir(Object)}.
@@ -135,4 +149,6 @@ public interface TaskInputs {
      * @return this
      */
     TaskInputs sourceDir(Object path);
+
+    TaskInputs sourceDir(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object path);
 }

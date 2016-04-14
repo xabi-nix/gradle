@@ -30,4 +30,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.FIELD})
 public @interface OutputFiles {
+    FileOrderMode order() default FileOrderMode.UNORDERED;
+    FilePathMode paths() default FilePathMode.ABSOLUTE;
+    FileContentsMode contents() default FileContentsMode.USE;
 }

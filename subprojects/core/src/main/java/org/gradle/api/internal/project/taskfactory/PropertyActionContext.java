@@ -15,6 +15,7 @@
  */
 package org.gradle.api.internal.project.taskfactory;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 
 public interface PropertyActionContext {
@@ -36,10 +37,9 @@ public interface PropertyActionContext {
      */
     Class<?> getInstanceVariableType();
 
-    /**
-     * Returns the target for this property.
-     */
-    AnnotatedElement getTarget();
+    AnnotatedElement getAnnotatedElement(Class<? extends Annotation> annotationType);
+
+    <A extends Annotation> A getAnnotation(Class<A> annotationType);
 
     /**
      * Specifies the action used to validate the value of this property. This action is only executed when the property

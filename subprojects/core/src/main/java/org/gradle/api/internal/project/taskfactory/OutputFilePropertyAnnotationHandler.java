@@ -19,6 +19,9 @@ import org.gradle.api.Action;
 import org.gradle.api.Task;
 import org.gradle.api.Transformer;
 import org.gradle.api.internal.TaskInternal;
+import org.gradle.api.tasks.FileContentsMode;
+import org.gradle.api.tasks.FileOrderMode;
+import org.gradle.api.tasks.FilePathMode;
 import org.gradle.internal.FileUtils;
 import org.gradle.util.GFileUtils;
 
@@ -29,17 +32,19 @@ import java.util.concurrent.Callable;
 
 import static org.gradle.util.GUtil.uncheckedCall;
 
-public class OutputFilePropertyAnnotationHandler implements PropertyAnnotationHandler {
+public class OutputFilePropertyAnnotationHandler<A extends Annotation> implements PropertyAnnotationHandler {
 
-    private final Class<? extends Annotation> annotationType;
+    private final Class<A> annotationType;
     private final Transformer<Iterable<File>, Object> valueTransformer;
+    private final FileAnnotationExtractor<A> annotationExtractor;
 
-    public OutputFilePropertyAnnotationHandler(Class<? extends Annotation> annotationType, Transformer<Iterable<File>, Object> valueTransformer) {
+    public OutputFilePropertyAnnotationHandler(Class<A> annotationType, Transformer<Iterable<File>, Object> valueTransformer, FileAnnotationExtractor<A> annotationExtractor) {
         this.annotationType = annotationType;
         this.valueTransformer = valueTransformer;
+        this.annotationExtractor = annotationExtractor;
     }
 
-    public Class<? extends Annotation> getAnnotationType() {
+    public Class<A> getAnnotationType() {
         return annotationType;
     }
 
@@ -61,10 +66,14 @@ public class OutputFilePropertyAnnotationHandler implements PropertyAnnotationHa
     };
 
     public void attachActions(final PropertyActionContext context) {
+        final A annotation = context.getAnnotation(annotationType);
         context.setValidationAction(outputDirValidation);
         context.setConfigureAction(new UpdateAction() {
             public void update(TaskInternal task, final Callable<Object> futureValue) {
-                task.getOutputs().files(futureValue);
+                FileOrderMode orderMode = annotationExtractor.getOrderMode(annotation);
+                FilePathMode pathMode = annotationExtractor.getPathMode(annotation);
+                FileContentsMode contentsMode = annotationExtractor.getContentsMode(annotation);
+                task.getOutputs().files(context.getName(), orderMode, pathMode, contentsMode, futureValue);
                 task.prependParallelSafeAction(new Action<Task>() {
                     public void execute(Task task) {
                         Iterable<File> files = valueTransformer.transform(uncheckedCall(futureValue));

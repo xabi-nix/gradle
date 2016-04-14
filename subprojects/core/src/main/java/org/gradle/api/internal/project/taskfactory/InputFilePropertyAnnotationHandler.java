@@ -16,6 +16,7 @@
 package org.gradle.api.internal.project.taskfactory;
 
 import org.gradle.api.internal.TaskInternal;
+import org.gradle.api.tasks.FileOrderMode;
 import org.gradle.api.tasks.InputFile;
 
 import java.io.File;
@@ -39,11 +40,12 @@ public class InputFilePropertyAnnotationHandler implements PropertyAnnotationHan
         return InputFile.class;
     }
 
-    public void attachActions(PropertyActionContext context) {
+    public void attachActions(final PropertyActionContext context) {
+        final InputFile annotation = context.getAnnotation(InputFile.class);
         context.setValidationAction(inputFileValidation);
         context.setConfigureAction(new UpdateAction() {
             public void update(TaskInternal task, Callable<Object> futureValue) {
-                task.getInputs().files(futureValue);
+                task.getInputs().files(context.getName(), FileOrderMode.UNORDERED, annotation.path(), annotation.contents(), futureValue);
             }
         });
     }

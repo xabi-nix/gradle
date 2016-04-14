@@ -64,14 +64,82 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
         }
     };
 
+    private static final FileAnnotationExtractor<OutputFile> OUTPUT_FILE_EXTRACTOR = new FileAnnotationExtractor<OutputFile>() {
+        @Override
+        public FileOrderMode getOrderMode(OutputFile annotation) {
+            return FileOrderMode.UNORDERED;
+        }
+
+        @Override
+        public FilePathMode getPathMode(OutputFile annotation) {
+            return annotation.path();
+        }
+
+        @Override
+        public FileContentsMode getContentsMode(OutputFile annotation) {
+            return annotation.contents();
+        }
+    };
+
+    private static final FileAnnotationExtractor<OutputFiles> OUTPUT_FILES_EXTRACTOR = new FileAnnotationExtractor<OutputFiles>() {
+        @Override
+        public FileOrderMode getOrderMode(OutputFiles annotation) {
+            return annotation.order();
+        }
+
+        @Override
+        public FilePathMode getPathMode(OutputFiles annotation) {
+            return annotation.paths();
+        }
+
+        @Override
+        public FileContentsMode getContentsMode(OutputFiles annotation) {
+            return annotation.contents();
+        }
+    };
+
+    private static final FileAnnotationExtractor<OutputDirectory> OUTPUT_DIRECTORY_EXTRACTOR = new FileAnnotationExtractor<OutputDirectory>() {
+        @Override
+        public FileOrderMode getOrderMode(OutputDirectory annotation) {
+            return annotation.order();
+        }
+
+        @Override
+        public FilePathMode getPathMode(OutputDirectory annotation) {
+            return annotation.paths();
+        }
+
+        @Override
+        public FileContentsMode getContentsMode(OutputDirectory annotation) {
+            return annotation.contents();
+        }
+    };
+
+    private static final FileAnnotationExtractor<OutputDirectories> OUTPUT_DIRECTORIES_EXTRACTOR = new FileAnnotationExtractor<OutputDirectories>() {
+        @Override
+        public FileOrderMode getOrderMode(OutputDirectories annotation) {
+            return annotation.order();
+        }
+
+        @Override
+        public FilePathMode getPathMode(OutputDirectories annotation) {
+            return annotation.paths();
+        }
+
+        @Override
+        public FileContentsMode getContentsMode(OutputDirectories annotation) {
+            return annotation.contents();
+        }
+    };
+
     private final static List<? extends PropertyAnnotationHandler> HANDLERS = Arrays.asList(
             new InputFilePropertyAnnotationHandler(),
             new InputDirectoryPropertyAnnotationHandler(),
             new InputFilesPropertyAnnotationHandler(),
-            new OutputFilePropertyAnnotationHandler(OutputFile.class, FILE_PROPERTY_TRANSFORMER),
-            new OutputFilePropertyAnnotationHandler(OutputFiles.class, ITERABLE_FILE_PROPERTY_TRANSFORMER),
-            new OutputDirectoryPropertyAnnotationHandler(OutputDirectory.class, FILE_PROPERTY_TRANSFORMER),
-            new OutputDirectoryPropertyAnnotationHandler(OutputDirectories.class, ITERABLE_FILE_PROPERTY_TRANSFORMER),
+            new OutputFilePropertyAnnotationHandler<OutputFile>(OutputFile.class, FILE_PROPERTY_TRANSFORMER, OUTPUT_FILE_EXTRACTOR),
+            new OutputFilePropertyAnnotationHandler<OutputFiles>(OutputFiles.class, ITERABLE_FILE_PROPERTY_TRANSFORMER, OUTPUT_FILES_EXTRACTOR),
+            new OutputDirectoryPropertyAnnotationHandler<OutputDirectory>(OutputDirectory.class, FILE_PROPERTY_TRANSFORMER, OUTPUT_DIRECTORY_EXTRACTOR),
+            new OutputDirectoryPropertyAnnotationHandler<OutputDirectories>(OutputDirectories.class, ITERABLE_FILE_PROPERTY_TRANSFORMER, OUTPUT_DIRECTORIES_EXTRACTOR),
             new InputPropertyAnnotationHandler(),
             new NestedBeanPropertyAnnotationHandler());
 
@@ -415,10 +483,7 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
             return instanceVariableField != null ? instanceVariableField.getType() : null;
         }
 
-        public AnnotatedElement getTarget() {
-            return method;
-        }
-
+        @Override
         public AnnotatedElement getAnnotatedElement(Class<? extends Annotation> annotationType) {
             if (method.isAnnotationPresent(annotationType)) {
                 return method;
@@ -427,6 +492,15 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
             } else {
                 return null;
             }
+        }
+
+        @Override
+        public <A extends Annotation> A getAnnotation(Class<A> annotationType) {
+            A annotation = method.getAnnotation(annotationType);
+            if (annotation == null && instanceVariableField != null) {
+                annotation = instanceVariableField.getAnnotation(annotationType);
+            }
+            return annotation;
         }
 
         public void setValidationAction(ValidationAction action) {

@@ -20,6 +20,7 @@ import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.SkipWhenEmpty;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedElement;
 import java.util.concurrent.Callable;
 
 public class InputFilesPropertyAnnotationHandler implements PropertyAnnotationHandler {
@@ -27,14 +28,17 @@ public class InputFilesPropertyAnnotationHandler implements PropertyAnnotationHa
         return InputFiles.class;
     }
 
-    public void attachActions(PropertyActionContext context) {
-        final boolean isSourceFiles = context.getTarget().getAnnotation(SkipWhenEmpty.class) != null;
+    public void attachActions(final PropertyActionContext context) {
+        // TODO The annotation itself should be cached in the context
+        AnnotatedElement target = context.getAnnotatedElement(InputFiles.class);
+        final InputFiles annotation = target.getAnnotation(InputFiles.class);
+        final boolean skipWhenEmpty = target.isAnnotationPresent(SkipWhenEmpty.class);
         context.setConfigureAction(new UpdateAction() {
             public void update(TaskInternal task, Callable<Object> futureValue) {
-                if (isSourceFiles) {
-                    task.getInputs().source(futureValue);
+                if (skipWhenEmpty) {
+                    task.getInputs().source(context.getName(), annotation.order(), annotation.paths(), annotation.contents(), futureValue);
                 } else {
-                    task.getInputs().files(futureValue);
+                    task.getInputs().files(context.getName(), annotation.order(), annotation.paths(), annotation.contents(), futureValue);
                 }
             }
         });

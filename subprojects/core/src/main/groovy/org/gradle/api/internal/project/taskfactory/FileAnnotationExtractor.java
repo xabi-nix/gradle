@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 the original author or authors.
+ * Copyright 2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,16 @@
  * limitations under the License.
  */
 
-package org.gradle.api.internal;
+package org.gradle.api.internal.project.taskfactory;
 
-import org.gradle.api.file.FileCollection;
-import org.gradle.api.internal.changedetection.taskcache.CacheKeyBuilder;
-import org.gradle.api.specs.Spec;
-import org.gradle.api.tasks.TaskOutputs;
+import org.gradle.api.tasks.FileContentsMode;
+import org.gradle.api.tasks.FileOrderMode;
+import org.gradle.api.tasks.FilePathMode;
 
-public interface TaskOutputsInternal extends TaskOutputs {
-    Spec<? super TaskInternal> getUpToDateSpec();
+import java.lang.annotation.Annotation;
 
-    FileCollection getPreviousFiles();
-
-    void setHistory(TaskExecutionHistory history);
-
-    void appendToCacheKey(CacheKeyBuilder keyBuilder);
+public interface FileAnnotationExtractor<T extends Annotation> {
+    FilePathMode getPathMode(T annotation);
+    FileOrderMode getOrderMode(T annotation);
+    FileContentsMode getContentsMode(T annotation);
 }
