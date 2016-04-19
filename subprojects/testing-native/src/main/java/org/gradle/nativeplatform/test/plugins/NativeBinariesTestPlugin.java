@@ -20,6 +20,9 @@ import org.gradle.api.Action;
 import org.gradle.api.Incubating;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
+import org.gradle.api.tasks.FileContentsMode;
+import org.gradle.api.tasks.FileOrderMode;
+import org.gradle.api.tasks.FilePathMode;
 import org.gradle.language.base.LanguageSourceSet;
 import org.gradle.language.nativeplatform.DependentSourceSet;
 import org.gradle.model.Each;
@@ -80,7 +83,7 @@ public class NativeBinariesTestPlugin implements Plugin<Project> {
             NativeTestSuiteBinarySpec.TasksCollection tasks = testSuiteBinary.getTasks();
             InstallExecutable installTask = (InstallExecutable) tasks.getInstall();
             RunTestExecutable runTask = (RunTestExecutable) tasks.getRun();
-            runTask.getInputs().files(installTask.getOutputs().getFiles());
+            runTask.getInputs().includeFiles("installTask.outputs", FileOrderMode.UNORDERED, FilePathMode.HIERARCHY_ONLY, FileContentsMode.USE, installTask.getOutputs().getFiles());
             runTask.setExecutable(installTask.getRunScript().getPath());
             Project project = runTask.getProject();
             runTask.setOutputDir(namingScheme.getOutputDirectory(project.getBuildDir(), "test-results"));

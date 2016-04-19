@@ -24,6 +24,9 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import org.gradle.api.*;
 import org.gradle.api.internal.project.ProjectIdentifier;
+import org.gradle.api.tasks.FileContentsMode;
+import org.gradle.api.tasks.FileOrderMode;
+import org.gradle.api.tasks.FilePathMode;
 import org.gradle.internal.jvm.Jvm;
 import org.gradle.internal.service.ServiceRegistry;
 import org.gradle.jvm.JarBinarySpec;
@@ -273,7 +276,7 @@ public class JvmComponentPlugin implements Plugin<Project> {
 
         private void configureApiJarInputs(ApiJar apiJarTask, JvmAssembly assembly) {
             for (File classDir : assembly.getClassDirectories()) {
-                apiJarTask.getInputs().sourceDir(classDir);
+                apiJarTask.getInputs().includeSourceDir("assembly.classDirectories", FileOrderMode.UNORDERED, FilePathMode.HIERARCHY_ONLY, FileContentsMode.USE, classDir);
             }
         }
 

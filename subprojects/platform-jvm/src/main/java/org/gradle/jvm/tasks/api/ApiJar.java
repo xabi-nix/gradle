@@ -18,9 +18,7 @@ package org.gradle.jvm.tasks.api;
 
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Incubating;
-import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.OutputFile;
-import org.gradle.api.tasks.TaskAction;
+import org.gradle.api.tasks.*;
 import org.gradle.internal.ErroringAction;
 import org.gradle.jvm.tasks.api.internal.ApiClassExtractor;
 import org.objectweb.asm.ClassReader;
@@ -64,8 +62,7 @@ import static org.gradle.internal.IoActions.withResource;
  * the classpath and invoked at runtime.</p>
  *
  * <p>The inputs to this task are Java class files which must be provided via one of the
- * many {@link org.gradle.api.tasks.TaskInputs#sourceDir(Object)} and
- * {@link org.gradle.api.tasks.TaskInputs#source(Object)} overloads.</p>
+ * many {@code TaskInputs#includeSource*(...)} overloads.</p>
  *
  * @since 2.10
  * @see org.gradle.jvm.plugins.JvmComponentPlugin
