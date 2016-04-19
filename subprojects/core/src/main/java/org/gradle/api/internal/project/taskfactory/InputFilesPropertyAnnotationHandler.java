@@ -36,9 +36,9 @@ public class InputFilesPropertyAnnotationHandler implements PropertyAnnotationHa
         context.setConfigureAction(new UpdateAction() {
             public void update(TaskInternal task, Callable<Object> futureValue) {
                 if (skipWhenEmpty) {
-                    task.getInputs().source(context.getName(), annotation.order(), annotation.paths(), annotation.contents(), futureValue);
+                    task.getInputs().includeSource(context.getName(), annotation.order(), annotation.paths(), annotation.contents(), futureValue);
                 } else {
-                    task.getInputs().files(context.getName(), annotation.order(), annotation.paths(), annotation.contents(), futureValue);
+                    task.getInputs().includeFiles(context.getName(), annotation.order(), annotation.paths(), annotation.contents(), futureValue);
                 }
             }
         });

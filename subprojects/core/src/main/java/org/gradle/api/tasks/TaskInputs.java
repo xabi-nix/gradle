@@ -47,9 +47,10 @@ public interface TaskInputs {
      * @param paths The input files. The given paths are evaluated as per {@link org.gradle.api.Project#files(Object...)}.
      * @return this
      */
+    @Deprecated
     TaskInputs files(Object... paths);
 
-    TaskInputs files(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object... paths);
+    TaskInputs includeFiles(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object... paths);
 
     /**
      * Registers some input file for this task.
@@ -57,9 +58,10 @@ public interface TaskInputs {
      * @param path The input file. The given path is evaluated as per {@link org.gradle.api.Project#files(Object...)}.
      * @return this
      */
+    @Deprecated
     TaskInputs file(Object path);
 
-    TaskInputs file(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object path);
+    TaskInputs includeFile(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object path);
 
     /**
      * Registers an input directory hierarchy. All files found under the given directory are treated as input files for
@@ -68,9 +70,10 @@ public interface TaskInputs {
      * @param dirPath The directory. The path is evaluated as per {@link org.gradle.api.Project#file(Object)}.
      * @return this
      */
+    @Deprecated
     TaskInputs dir(Object dirPath);
 
-    TaskInputs dir(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object path);
+    TaskInputs includeDir(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object path);
 
     /**
      * Returns the set of input properties for this task.
@@ -126,9 +129,10 @@ public interface TaskInputs {
      * @param paths The paths. These are evaluated as per {@link org.gradle.api.Project#files(Object...)}.
      * @return this
      */
+    @Deprecated
     TaskInputs source(Object... paths);
 
-    TaskInputs source(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object... paths);
+    TaskInputs includeSource(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object... paths);
 
     /**
      * Registers some source files for this task. Note that source files are also considered input files, so calling this method implies
@@ -137,9 +141,10 @@ public interface TaskInputs {
      * @param path The path. This is evaluated as per {@link org.gradle.api.Project#files(Object...)}.
      * @return this
      */
+    @Deprecated
     TaskInputs source(Object path);
 
-    TaskInputs source(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object path);
+    TaskInputs includeSource(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object path);
 
     /**
      * Registers a source directory for this task. All files under this directory are treated as source files for this task. Note that
@@ -148,7 +153,8 @@ public interface TaskInputs {
      * @param path The path. This is evaluated as per {@link org.gradle.api.Project#file(Object)}.
      * @return this
      */
+    @Deprecated
     TaskInputs sourceDir(Object path);
 
-    TaskInputs sourceDir(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object path);
+    TaskInputs includeSourceDir(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object path);
 }

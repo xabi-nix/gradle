@@ -50,9 +50,9 @@ public class InputDirectoryPropertyAnnotationHandler implements PropertyAnnotati
         context.setConfigureAction(new UpdateAction() {
             public void update(TaskInternal task, Callable<Object> futureValue) {
                 if (skipWhenEmpty) {
-                    task.getInputs().sourceDir(context.getName(), annotation.order(), annotation.paths(), annotation.contents(), futureValue);
+                    task.getInputs().includeSourceDir(context.getName(), annotation.order(), annotation.paths(), annotation.contents(), futureValue);
                 } else {
-                    task.getInputs().dir(context.getName(), annotation.order(), annotation.paths(), annotation.contents(), futureValue);
+                    task.getInputs().includeDir(context.getName(), annotation.order(), annotation.paths(), annotation.contents(), futureValue);
                 }
             }
         });

@@ -53,12 +53,11 @@ public class SkipCachedTaskExecuterTest extends Specification {
         1 * task.getOutputs() >> outputs
         1 * outputs.getDeclaresOutput() >> true
         1 * outputs.isCacheEnabled() >> true
+        1 * outputs.isCacheAllowed() >> true
 
-        1 * taskInputHasher.createHash(task, projectDir) >> cacheKey
+        1 * taskInputHasher.createHash(task) >> cacheKey
         1 * taskResultCache.get(cacheKey) >> cachedResult
-        1 * taskResultPacker.unpack(projectDir, cachedResult)
-        1 * task.getProject() >> project
-        1 * project.getProjectDir() >> projectDir
+        1 * taskResultPacker.unpack(outputs, cachedResult)
         1 * taskState.upToDate("CACHED")
         0 * _
     }
@@ -73,11 +72,9 @@ public class SkipCachedTaskExecuterTest extends Specification {
         1 * task.getOutputs() >> outputs
         1 * outputs.getDeclaresOutput() >> true
         1 * outputs.isCacheEnabled() >> true
+        1 * outputs.isCacheAllowed() >> true
 
-        1 * task.getProject() >> project
-        1 * project.getProjectDir() >> projectDir
-
-        1 * taskInputHasher.createHash(task, projectDir) >> cacheKey
+        1 * taskInputHasher.createHash(task) >> cacheKey
         1 * taskResultCache.get(cacheKey) >> null
 
         then:
@@ -85,8 +82,7 @@ public class SkipCachedTaskExecuterTest extends Specification {
         1 * taskState.getFailure() >> null
 
         then:
-        1 * outputs.getFiles() >> outputFiles
-        1 * taskResultPacker.createWriter(projectDir, outputFiles) >> cachedResult
+        1 * taskResultPacker.createWriter(outputs) >> cachedResult
         1 * taskResultCache.put(cacheKey, cachedResult)
         0 * _
     }
@@ -99,11 +95,10 @@ public class SkipCachedTaskExecuterTest extends Specification {
         1 * task.getOutputs() >> outputs
         1 * outputs.getDeclaresOutput() >> true
         1 * outputs.isCacheEnabled() >> true
+        1 * outputs.isCacheAllowed() >> true
 
-        1 * taskInputHasher.createHash(task, projectDir) >> cacheKey
+        1 * taskInputHasher.createHash(task) >> cacheKey
         1 * taskResultCache.get(cacheKey) >> null
-        1 * task.getProject() >> project
-        1 * project.getProjectDir() >> projectDir
 
         then:
         1 * delegate.execute(task, taskState, taskContext)
@@ -132,6 +127,21 @@ public class SkipCachedTaskExecuterTest extends Specification {
         1 * task.getOutputs() >> outputs
         1 * outputs.getDeclaresOutput() >> true
         1 * outputs.isCacheEnabled() >> false
+
+        then:
+        1 * delegate.execute(task, taskState, taskContext)
+        0 * _
+    }
+
+    def "executes task and does not cache results when cacheIf is true but task is not allowed to use cache anyway"() {
+        when:
+        executer.execute(task, taskState, taskContext)
+
+        then:
+        1 * task.getOutputs() >> outputs
+        1 * outputs.getDeclaresOutput() >> true
+        1 * outputs.isCacheEnabled() >> true
+        1 * outputs.isCacheAllowed() >> false
 
         then:
         1 * delegate.execute(task, taskState, taskContext)

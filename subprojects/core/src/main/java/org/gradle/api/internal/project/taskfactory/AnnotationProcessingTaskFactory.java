@@ -70,28 +70,28 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
     private static final TaskOutputExtractor<OutputFile> OUTPUT_FILE_EXTRACTOR = new TaskOutputExtractor<OutputFile>() {
         @Override
         public void extractOutput(String propertyName, Callable<Object> futureValue, TaskOutputsInternal outputs) {
-            outputs.file(propertyName, futureValue);
+            outputs.includeFile(propertyName, futureValue);
         }
     };
 
     private static final TaskOutputExtractor<OutputFiles> OUTPUT_FILES_EXTRACTOR = new TaskOutputExtractor<OutputFiles>() {
         @Override
         public void extractOutput(String propertyName, Callable<Object> futureValue, TaskOutputsInternal outputs) {
-            outputs.files(propertyName, futureValue);
+            outputs.includeFiles(propertyName, futureValue);
         }
     };
 
     private static final TaskOutputExtractor<OutputDirectory> OUTPUT_DIRECTORY_EXTRACTOR = new TaskOutputExtractor<OutputDirectory>() {
         @Override
         public void extractOutput(String propertyName, Callable<Object> futureValue, TaskOutputsInternal outputs) {
-            outputs.dir(propertyName, futureValue);
+            outputs.includeDir(propertyName, futureValue);
         }
     };
 
     private static final TaskOutputExtractor<OutputDirectories> OUTPUT_DIRECTORIES_EXTRACTOR = new TaskOutputExtractor<OutputDirectories>() {
         @Override
         public void extractOutput(String propertyName, Callable<Object> futureValue, TaskOutputsInternal outputs) {
-            outputs.files(propertyName, futureValue);
+            outputs.includeFiles(propertyName, futureValue);
         }
     };
 

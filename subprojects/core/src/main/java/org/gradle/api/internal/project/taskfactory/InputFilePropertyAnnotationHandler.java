@@ -45,7 +45,7 @@ public class InputFilePropertyAnnotationHandler implements PropertyAnnotationHan
         context.setValidationAction(inputFileValidation);
         context.setConfigureAction(new UpdateAction() {
             public void update(TaskInternal task, Callable<Object> futureValue) {
-                task.getInputs().files(context.getName(), FileOrderMode.UNORDERED, annotation.path(), annotation.contents(), futureValue);
+                task.getInputs().includeFiles(context.getName(), FileOrderMode.UNORDERED, annotation.path(), annotation.contents(), futureValue);
             }
         });
     }

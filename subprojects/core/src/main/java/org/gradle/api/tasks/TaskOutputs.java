@@ -93,9 +93,10 @@ public interface TaskOutputs {
      * @param paths The output files. The given paths are evaluated as per {@link org.gradle.api.Project#files(Object...)}.
      * @return this
      */
+    @Deprecated
     TaskOutputs files(Object... paths);
 
-    TaskOutputs files(String property, Object... paths);
+    TaskOutputs includeFiles(String property, Object... paths);
 
     /**
      * Registers some output file for this task.
@@ -103,9 +104,10 @@ public interface TaskOutputs {
      * @param path The output file. The given path is evaluated as per {@link org.gradle.api.Project#file(Object)}.
      * @return this
      */
+    @Deprecated
     TaskOutputs file(Object path);
 
-    TaskOutputs file(String property, Object path);
+    TaskOutputs includeFile(String property, Object path);
 
     /**
      * Registers an output directory for this task.
@@ -113,7 +115,8 @@ public interface TaskOutputs {
      * @param path The output directory. The given path is evaluated as per {@link org.gradle.api.Project#file(Object)}.
      * @return this
      */
+    @Deprecated
     TaskOutputs dir(Object path);
 
-    TaskOutputs dir(String property, Object path);
+    TaskOutputs includeDir(String property, Object path);
 }
