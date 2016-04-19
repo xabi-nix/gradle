@@ -64,6 +64,28 @@ class CachedTaskExecutionIntegrationTest extends AbstractIntegrationSpec {
         skippedTasks.containsAll ":processResources", ":jar"
     }
 
+    def "jar tasks get cached even when output file is changed"() {
+        file("settings.gradle") << "rootProject.name = 'test'"
+        expect:
+        succeedsWithCache "assemble"
+        skippedTasks.empty
+        file("build/libs/test.jar").isFile()
+
+        buildFile << """
+            jar {
+                destinationDir = file("\$buildDir/other-jar")
+                baseName = "other-jar"
+            }
+        """
+        succeedsWithCache "clean"
+        !file("build/libs/test.jar").isFile()
+
+        succeedsWithCache "assemble"
+        skippedTasks.contains ":jar"
+        !file("build/libs/test.jar").isFile()
+        file("build/other-jar/other-jar.jar").isFile()
+    }
+
     def "clean doesn't get cached"() {
         expect:
         succeedsWithCache "assemble"

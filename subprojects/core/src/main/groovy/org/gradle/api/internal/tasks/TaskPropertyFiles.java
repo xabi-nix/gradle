@@ -21,8 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
-import org.gradle.api.file.ConfigurableFileCollection;
-import org.gradle.api.file.FileCollection;
+import org.gradle.api.file.*;
 import org.gradle.api.internal.changedetection.taskcache.CacheKeyBuilder;
 import org.gradle.api.internal.file.FileResolver;
 import org.gradle.api.internal.file.collections.DefaultConfigurableFileCollection;
@@ -36,6 +35,11 @@ import java.util.List;
 
 public class TaskPropertyFiles {
     public static final String DEFAULT_PROPERTY = "$default";
+
+    private static Long MISSING_FILE = 2162696302935415879L;
+    private static Long DIRECTORY = -2502020229561429852L;
+    private static Long EXISTING_FILE = 8788545890128232955L;
+
     private final String description;
     private final FileResolver resolver;
     private final List<Entry> entries = Lists.newArrayList();
@@ -71,54 +75,58 @@ public class TaskPropertyFiles {
         return files;
     }
 
-    public boolean shouldSkipBecauseEmpty() {
-        boolean foundSkipWhenEmpty = false;
-        for (Entry entry : entries) {
-            if (!entry.skipWhenEmpty) {
-                continue;
-            }
-            foundSkipWhenEmpty = true;
-            if (!entry.resolve(resolver).isEmpty()) {
-                return false;
-            }
-        }
-        return foundSkipWhenEmpty;
-    }
-
-    public void appendToCacheKey(CacheKeyBuilder keyBuilder, boolean useFileContents) {
+    public void appendToCacheKey(final CacheKeyBuilder keyBuilder, final boolean useFileContents) {
         Collections.sort(entries);
         String previousProperty = null;
-        for (Entry entry : entries) {
+        for (final Entry entry : entries) {
             String property = entry.getProperty();
             if (!property.equals(previousProperty)) {
                 // TODO:LPTR Add some delimiter
                 keyBuilder.put(property);
             }
-            FileCollection files = entry.resolve(resolver);
+            FileTree files = entry.resolve(resolver).getAsFileTree();
             // TODO:LPTR Handle ordering
-            for (File file : files) {
-                switch (entry.getPathMode()) {
-                    case ABSOLUTE:
-                        // TODO:LPTR Add some delimiter
-                        keyBuilder.put(file.getAbsolutePath());
-                        break;
-                    case HIERARCHY_ONLY:
-                        // TODO:LPTR Add some different delimiter
-                        // TODO:LPTR Figure out place in hierarchy properly
-                        keyBuilder.put(file.getName());
-                        break;
-                    case IGNORE:
-                        break;
+            files.visit(new FileVisitor() {
+                @Override
+                public void visitDir(FileVisitDetails dirDetails) {
+                    visit(dirDetails);
                 }
 
-                // TODO:LPTR Handle file contents for directories
-                if (file.isFile() && useFileContents && entry.getContentsMode() == FileContentsMode.USE) {
-                    // TODO:LPTR Add some delimiter
-                    // TODO:LPTR Use pre-calculated, locally cached hash instead
-                    keyBuilder.put(Files.asByteSource(file));
-                    break;
+                @Override
+                public void visitFile(FileVisitDetails fileDetails) {
+                    visit(fileDetails);
                 }
-            }
+
+                private void visit(FileVisitDetails fileDetails) {
+                    File file = fileDetails.getFile();
+                    switch (entry.getPathMode()) {
+                        case ABSOLUTE:
+                            // TODO:LPTR Add some delimiter
+                            keyBuilder.put(file.getAbsolutePath());
+                            break;
+                        case HIERARCHY_ONLY:
+                            // TODO:LPTR Add some different delimiter
+                            // TODO:LPTR Figure out place in hierarchy properly
+                            keyBuilder.put(fileDetails.getRelativePath().getPathString());
+                            break;
+                        case IGNORE:
+                            break;
+                    }
+
+                    if (fileDetails.isDirectory()) {
+                        keyBuilder.put(DIRECTORY);
+                    } else if (file.isFile()) {
+                        keyBuilder.put(EXISTING_FILE);
+                    } else {
+                        keyBuilder.put(MISSING_FILE);
+                    }
+
+                    if (file.isFile() && useFileContents && entry.getContentsMode() == FileContentsMode.USE) {
+                        // TODO:LPTR Use pre-calculated, locally cached hash instead
+                        keyBuilder.put(Files.asByteSource(file));
+                    }
+                }
+            });
         }
     }
 

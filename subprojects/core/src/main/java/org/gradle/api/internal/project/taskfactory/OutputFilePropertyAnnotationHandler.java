@@ -19,9 +19,6 @@ import org.gradle.api.Action;
 import org.gradle.api.Task;
 import org.gradle.api.Transformer;
 import org.gradle.api.internal.TaskInternal;
-import org.gradle.api.tasks.FileContentsMode;
-import org.gradle.api.tasks.FileOrderMode;
-import org.gradle.api.tasks.FilePathMode;
 import org.gradle.internal.FileUtils;
 import org.gradle.util.GFileUtils;
 
@@ -36,12 +33,12 @@ public class OutputFilePropertyAnnotationHandler<A extends Annotation> implement
 
     private final Class<A> annotationType;
     private final Transformer<Iterable<File>, Object> valueTransformer;
-    private final FileAnnotationExtractor<A> annotationExtractor;
+    private final TaskOutputExtractor<A> outputExtractor;
 
-    public OutputFilePropertyAnnotationHandler(Class<A> annotationType, Transformer<Iterable<File>, Object> valueTransformer, FileAnnotationExtractor<A> annotationExtractor) {
+    public OutputFilePropertyAnnotationHandler(Class<A> annotationType, Transformer<Iterable<File>, Object> valueTransformer, TaskOutputExtractor<A> outputExtractor) {
         this.annotationType = annotationType;
         this.valueTransformer = valueTransformer;
-        this.annotationExtractor = annotationExtractor;
+        this.outputExtractor = outputExtractor;
     }
 
     public Class<A> getAnnotationType() {
@@ -66,14 +63,10 @@ public class OutputFilePropertyAnnotationHandler<A extends Annotation> implement
     };
 
     public void attachActions(final PropertyActionContext context) {
-        final A annotation = context.getAnnotation(annotationType);
         context.setValidationAction(outputDirValidation);
         context.setConfigureAction(new UpdateAction() {
             public void update(TaskInternal task, final Callable<Object> futureValue) {
-                FileOrderMode orderMode = annotationExtractor.getOrderMode(annotation);
-                FilePathMode pathMode = annotationExtractor.getPathMode(annotation);
-                FileContentsMode contentsMode = annotationExtractor.getContentsMode(annotation);
-                task.getOutputs().files(context.getName(), orderMode, pathMode, contentsMode, futureValue);
+                outputExtractor.extractOutput(context.getName(), futureValue, task.getOutputs());
                 task.prependParallelSafeAction(new Action<Task>() {
                     public void execute(Task task) {
                         Iterable<File> files = valueTransformer.transform(uncheckedCall(futureValue));

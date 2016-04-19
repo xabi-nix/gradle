@@ -95,7 +95,7 @@ public interface TaskOutputs {
      */
     TaskOutputs files(Object... paths);
 
-    TaskOutputs files(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object... paths);
+    TaskOutputs files(String property, Object... paths);
 
     /**
      * Registers some output file for this task.
@@ -105,7 +105,7 @@ public interface TaskOutputs {
      */
     TaskOutputs file(Object path);
 
-    TaskOutputs file(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object path);
+    TaskOutputs file(String property, Object path);
 
     /**
      * Registers an output directory for this task.
@@ -115,5 +115,5 @@ public interface TaskOutputs {
      */
     TaskOutputs dir(Object path);
 
-    TaskOutputs dir(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, Object path);
+    TaskOutputs dir(String property, Object path);
 }

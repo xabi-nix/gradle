@@ -20,7 +20,7 @@ import org.gradle.api.internal.cache.StringInterner
 import org.gradle.api.internal.changedetection.state.InMemoryTaskArtifactCache
 import org.gradle.api.internal.changedetection.taskcache.TaskInputHasher
 import org.gradle.api.internal.changedetection.taskcache.TaskResultCache
-import org.gradle.api.internal.changedetection.taskcache.TaskResultPacker
+import org.gradle.api.internal.changedetection.taskcache.TaskOutputPacker
 import org.gradle.api.internal.file.FileCollectionFactory
 import org.gradle.api.internal.file.FileResolver
 import org.gradle.api.internal.tasks.TaskExecuter
@@ -63,7 +63,7 @@ class TaskExecutionServicesTest extends Specification {
         _ * parent.get(FileCollectionFactory) >> Mock(FileCollectionFactory)
         _ * parent.get(StringInterner) >> new StringInterner()
         _ * parent.get(TaskResultCache) >> Mock(TaskResultCache)
-        _ * parent.get(TaskResultPacker) >> Mock(TaskResultPacker)
+        _ * parent.get(TaskOutputPacker) >> Mock(TaskOutputPacker)
         _ * parent.get(TaskInputHasher) >> Mock(TaskInputHasher)
         _ * startParameter.getSystemPropertiesArgs() >> Collections.emptyMap()
         _ * cacheRepository.cache(gradle, 'taskArtifacts') >> cacheBuilder

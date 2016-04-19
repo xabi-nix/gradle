@@ -25,6 +25,7 @@ import org.gradle.api.internal.changedetection.TaskArtifactState;
 import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.api.internal.tasks.ContextAwareTaskAction;
 import org.gradle.api.internal.tasks.TaskExecutionContext;
+import org.gradle.api.internal.TaskOutputsInternal;
 import org.gradle.api.internal.tasks.execution.TaskValidator;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.specs.Specs;
@@ -66,71 +67,31 @@ public class AnnotationProcessingTaskFactory implements ITaskFactory {
         }
     };
 
-    private static final FileAnnotationExtractor<OutputFile> OUTPUT_FILE_EXTRACTOR = new FileAnnotationExtractor<OutputFile>() {
+    private static final TaskOutputExtractor<OutputFile> OUTPUT_FILE_EXTRACTOR = new TaskOutputExtractor<OutputFile>() {
         @Override
-        public FileOrderMode getOrderMode(OutputFile annotation) {
-            return FileOrderMode.UNORDERED;
-        }
-
-        @Override
-        public FilePathMode getPathMode(OutputFile annotation) {
-            return annotation.path();
-        }
-
-        @Override
-        public FileContentsMode getContentsMode(OutputFile annotation) {
-            return annotation.contents();
+        public void extractOutput(String propertyName, Callable<Object> futureValue, TaskOutputsInternal outputs) {
+            outputs.file(propertyName, futureValue);
         }
     };
 
-    private static final FileAnnotationExtractor<OutputFiles> OUTPUT_FILES_EXTRACTOR = new FileAnnotationExtractor<OutputFiles>() {
+    private static final TaskOutputExtractor<OutputFiles> OUTPUT_FILES_EXTRACTOR = new TaskOutputExtractor<OutputFiles>() {
         @Override
-        public FileOrderMode getOrderMode(OutputFiles annotation) {
-            return annotation.order();
-        }
-
-        @Override
-        public FilePathMode getPathMode(OutputFiles annotation) {
-            return annotation.paths();
-        }
-
-        @Override
-        public FileContentsMode getContentsMode(OutputFiles annotation) {
-            return annotation.contents();
+        public void extractOutput(String propertyName, Callable<Object> futureValue, TaskOutputsInternal outputs) {
+            outputs.files(propertyName, futureValue);
         }
     };
 
-    private static final FileAnnotationExtractor<OutputDirectory> OUTPUT_DIRECTORY_EXTRACTOR = new FileAnnotationExtractor<OutputDirectory>() {
+    private static final TaskOutputExtractor<OutputDirectory> OUTPUT_DIRECTORY_EXTRACTOR = new TaskOutputExtractor<OutputDirectory>() {
         @Override
-        public FileOrderMode getOrderMode(OutputDirectory annotation) {
-            return annotation.order();
-        }
-
-        @Override
-        public FilePathMode getPathMode(OutputDirectory annotation) {
-            return annotation.paths();
-        }
-
-        @Override
-        public FileContentsMode getContentsMode(OutputDirectory annotation) {
-            return annotation.contents();
+        public void extractOutput(String propertyName, Callable<Object> futureValue, TaskOutputsInternal outputs) {
+            outputs.dir(propertyName, futureValue);
         }
     };
 
-    private static final FileAnnotationExtractor<OutputDirectories> OUTPUT_DIRECTORIES_EXTRACTOR = new FileAnnotationExtractor<OutputDirectories>() {
+    private static final TaskOutputExtractor<OutputDirectories> OUTPUT_DIRECTORIES_EXTRACTOR = new TaskOutputExtractor<OutputDirectories>() {
         @Override
-        public FileOrderMode getOrderMode(OutputDirectories annotation) {
-            return annotation.order();
-        }
-
-        @Override
-        public FilePathMode getPathMode(OutputDirectories annotation) {
-            return annotation.paths();
-        }
-
-        @Override
-        public FileContentsMode getContentsMode(OutputDirectories annotation) {
-            return annotation.contents();
+        public void extractOutput(String propertyName, Callable<Object> futureValue, TaskOutputsInternal outputs) {
+            outputs.files(propertyName, futureValue);
         }
     };
 

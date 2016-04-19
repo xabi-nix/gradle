@@ -19,8 +19,6 @@ package org.gradle.api.internal.changedetection.taskcache;
 import com.google.common.hash.HashCode;
 import org.gradle.api.internal.TaskInternal;
 
-import java.io.File;
-
 public interface TaskInputHasher {
-    HashCode createHash(TaskInternal task, File cacheRootDir);
+    HashCode createHash(TaskInternal task);
 }

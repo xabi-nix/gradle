@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 the original author or authors.
+ * Copyright 2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,11 @@
 package org.gradle.api.internal;
 
 import org.gradle.api.file.FileCollection;
-import org.gradle.api.internal.changedetection.taskcache.CacheKeyBuilder;
+import org.gradle.api.internal.tasks.TaskPropertyOutput;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.TaskOutputs;
+
+import java.util.Collection;
 
 public interface TaskOutputsInternal extends TaskOutputs {
     Spec<? super TaskInternal> getUpToDateSpec();
@@ -34,9 +36,16 @@ public interface TaskOutputsInternal extends TaskOutputs {
      */
     boolean isCacheEnabled();
 
+    /**
+     * Checks if caching is allowed based on the output properties.
+     */
+    boolean isCacheAllowed();
+
     FileCollection getPreviousFiles();
 
     void setHistory(TaskExecutionHistory history);
 
-    void appendToCacheKey(CacheKeyBuilder keyBuilder);
+    Collection<TaskPropertyOutput> getPropertyOutputs();
+
+    TaskPropertyOutput getPropertyOutput(String propertyName);
 }

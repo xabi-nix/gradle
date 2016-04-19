@@ -16,7 +16,7 @@
 
 package org.gradle.api.internal.tasks;
 
-import com.google.common.base.Predicates;
+import com.google.common.collect.Maps;
 import groovy.lang.Closure;
 import org.gradle.api.Task;
 import org.gradle.api.file.ConfigurableFileCollection;
@@ -24,35 +24,32 @@ import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.TaskExecutionHistory;
 import org.gradle.api.internal.TaskInternal;
 import org.gradle.api.internal.TaskOutputsInternal;
-import org.gradle.api.internal.changedetection.taskcache.CacheKeyBuilder;
 import org.gradle.api.internal.file.FileResolver;
+import org.gradle.api.internal.file.collections.DefaultConfigurableFileCollection;
 import org.gradle.api.specs.AndSpec;
 import org.gradle.api.specs.Spec;
-import org.gradle.api.tasks.FileContentsMode;
-import org.gradle.api.tasks.FileOrderMode;
-import org.gradle.api.tasks.FilePathMode;
 import org.gradle.api.tasks.TaskOutputs;
 
-import static org.gradle.api.internal.tasks.TaskPropertyFiles.DEFAULT_PROPERTY;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
 
 public class DefaultTaskOutputs implements TaskOutputsInternal {
-    private final TaskPropertyFiles propertyFiles;
+    private static final String DEFAULT_PROPERTY = "$default";
+
+    private final Map<String, TaskPropertyOutput> propertyOutputs = Maps.newTreeMap();
     private AndSpec<TaskInternal> upToDateSpec = new AndSpec<TaskInternal>();
     private AndSpec<TaskInternal> cacheIfSpec = new AndSpec<TaskInternal>();
     private TaskExecutionHistory history;
+    private final FileResolver resolver;
     private final TaskInternal task;
     private final TaskMutator taskMutator;
     private ConfigurableFileCollection files;
 
     public DefaultTaskOutputs(FileResolver resolver, TaskInternal task, TaskMutator taskMutator) {
+        this.resolver = resolver;
         this.task = task;
         this.taskMutator = taskMutator;
-        this.propertyFiles = new TaskPropertyFiles(task + " output files", resolver);
-    }
-
-    @Override
-    public void appendToCacheKey(CacheKeyBuilder keyBuilder) {
-        propertyFiles.appendToCacheKey(keyBuilder, false);
     }
 
     @Override
@@ -63,6 +60,17 @@ public class DefaultTaskOutputs implements TaskOutputsInternal {
     @Override
     public boolean isCacheEnabled() {
         return !cacheIfSpec.getSpecs().isEmpty() && cacheIfSpec.isSatisfiedBy(task);
+    }
+
+    @Override
+    public boolean isCacheAllowed() {
+        for (TaskPropertyOutput output : propertyOutputs.values()) {
+            // When a single property refers to multiple outputs, we don't know how to cache those
+            if (output instanceof MultiPathTaskPropertyOutput) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -110,16 +118,33 @@ public class DefaultTaskOutputs implements TaskOutputsInternal {
 
     @Override
     public boolean getDeclaresOutput() {
-        return propertyFiles.hasEntries(Predicates.alwaysTrue());
+        return !propertyOutputs.isEmpty();
     }
 
     @Override
     public FileCollection getFiles() {
         if (files == null) {
-            this.files = propertyFiles.collectFiles(Predicates.alwaysTrue())
+            files = new DefaultConfigurableFileCollection(task + " output files", resolver, null)
                 .builtBy(task);
+            for (TaskPropertyOutput output : propertyOutputs.values()) {
+                output.collectFiles(files);
+            }
         }
         return files;
+    }
+
+    @Override
+    public Collection<TaskPropertyOutput> getPropertyOutputs() {
+        return Collections.unmodifiableCollection(propertyOutputs.values());
+    }
+
+    @Override
+    public TaskPropertyOutput getPropertyOutput(String propertyName) {
+        TaskPropertyOutput propertyOutput = propertyOutputs.get(propertyName);
+        if (propertyOutput == null) {
+            throw new IllegalArgumentException(String.format("No output property '%s' registered for %s", propertyName, task));
+        }
+        return propertyOutput;
     }
 
     @Override
@@ -127,18 +152,18 @@ public class DefaultTaskOutputs implements TaskOutputsInternal {
         taskMutator.mutate("TaskOutputs.files(Object...)", new Runnable() {
             @Override
             public void run() {
-                propertyFiles.files(DEFAULT_PROPERTY, FileOrderMode.UNORDERED, FilePathMode.ABSOLUTE, FileContentsMode.USE, false, paths);
+                addMultiplePropertyOutput(DEFAULT_PROPERTY, paths);
             }
         });
         return this;
     }
 
     @Override
-    public TaskOutputs files(final String property, final FileOrderMode orderMode, final FilePathMode pathMode, final FileContentsMode contentsMode, final Object... paths) {
-        taskMutator.mutate("TaskOutputs.files(String, FileOrderMode, FilePathMode, FileContentsMode, Object...)", new Runnable() {
+    public TaskOutputs files(final String property, final Object... paths) {
+        taskMutator.mutate("TaskOutputs.files(String, Object...)", new Runnable() {
             @Override
             public void run() {
-                propertyFiles.files(property, orderMode, pathMode, contentsMode, false, paths);
+                addMultiplePropertyOutput(property, paths);
             }
         });
         return this;
@@ -149,18 +174,18 @@ public class DefaultTaskOutputs implements TaskOutputsInternal {
         taskMutator.mutate("TaskOutputs.file(Object)", new Runnable() {
             @Override
             public void run() {
-                propertyFiles.files(DEFAULT_PROPERTY, FileOrderMode.UNORDERED, FilePathMode.ABSOLUTE, FileContentsMode.USE, false, path);
+                addMultiplePropertyOutput(DEFAULT_PROPERTY, path);
             }
         });
         return this;
     }
 
     @Override
-    public TaskOutputs file(final String property, final FileOrderMode orderMode, final FilePathMode pathMode, final FileContentsMode contentsMode, final Object path) {
-        taskMutator.mutate("TaskOutputs.file(String, FileOrderMode, FilePathMode, FileContentsMode, Object)", new Runnable() {
+    public TaskOutputs file(final String property, final Object path) {
+        taskMutator.mutate("TaskOutputs.file(String, Object)", new Runnable() {
             @Override
             public void run() {
-                propertyFiles.files(property, orderMode, pathMode, contentsMode, false, path);
+                addPropertyOutput(new OutputFileTaskPropertyOutput(property, path, resolver));
             }
         });
         return this;
@@ -171,21 +196,42 @@ public class DefaultTaskOutputs implements TaskOutputsInternal {
         taskMutator.mutate("TaskOutputs.dir(Object)", new Runnable() {
             @Override
             public void run() {
-                propertyFiles.dirs(DEFAULT_PROPERTY, FileOrderMode.UNORDERED, FilePathMode.ABSOLUTE, FileContentsMode.USE, false, path);
+                addMultiplePropertyOutput(DEFAULT_PROPERTY, path);
             }
         });
         return this;
     }
 
     @Override
-    public TaskOutputs dir(String property, FileOrderMode orderMode, FilePathMode pathMode, FileContentsMode contentsMode, final Object path) {
-        taskMutator.mutate("TaskOutputs.dir(String, FileOrderMode, FilePathMode, FileContentsMode, Object)", new Runnable() {
+    public TaskOutputs dir(final String property, final Object path) {
+        taskMutator.mutate("TaskOutputs.dir(String, FileOrderMode, Object)", new Runnable() {
             @Override
             public void run() {
-                propertyFiles.dirs(DEFAULT_PROPERTY, FileOrderMode.UNORDERED, FilePathMode.ABSOLUTE, FileContentsMode.USE, false, path);
+                addPropertyOutput(new OutputDirectoryTaskPropertyOutput(property, path, resolver));
             }
         });
         return this;
+    }
+
+    private void addPropertyOutput(TaskPropertyOutput output) {
+        String property = output.getProperty();
+        if (propertyOutputs.containsKey(property)) {
+            throw new IllegalStateException(String.format("Property '%s' is already registered as an output of %s", property, task));
+        }
+        propertyOutputs.put(property, output);
+    }
+
+    private void addMultiplePropertyOutput(String property, Object... paths) {
+        TaskPropertyOutput output = propertyOutputs.get(property);
+        if (output == null) {
+            propertyOutputs.put(property, new MultiPathTaskPropertyOutput(property, paths));
+        } else {
+            if (output instanceof MultiPathTaskPropertyOutput) {
+                ((MultiPathTaskPropertyOutput) output).addPaths(paths);
+            } else {
+                throw new IllegalStateException(String.format("Property '%s' is already registered as an output of %s", property, task));
+            }
+        }
     }
 
     @Override

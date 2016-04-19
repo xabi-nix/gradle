@@ -14,12 +14,18 @@
  * limitations under the License.
  */
 
-package org.gradle.api.internal.changedetection.taskcache;
+package org.gradle.api.internal.tasks;
 
-import com.google.common.io.ByteSource;
+import org.gradle.api.file.ConfigurableFileCollection;
 
 import java.io.IOException;
 
-public interface TaskResultInput {
-    ByteSource read() throws IOException;
+public interface TaskPropertyOutput {
+    String getProperty();
+
+    void visitFiles(TaskOutputVisitor visitor) throws IOException;
+
+    TaskOutputVisitor getVisitor();
+
+    void collectFiles(ConfigurableFileCollection files);
 }

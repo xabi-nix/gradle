@@ -21,9 +21,9 @@ import com.google.common.hash.HashCode;
 import java.io.IOException;
 
 public interface TaskResultCache {
-    TaskResultInput get(HashCode key) throws IOException;
+    TaskOutputReader get(HashCode key) throws IOException;
 
-    void put(HashCode key, TaskResultOutput result) throws IOException;
+    void put(HashCode key, TaskOutputWriter result) throws IOException;
 
     String getDescription();
 }

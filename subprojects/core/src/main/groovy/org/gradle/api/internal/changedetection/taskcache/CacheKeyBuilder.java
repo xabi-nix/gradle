@@ -39,20 +39,15 @@ public class CacheKeyBuilder {
     private static final Logger LOGGER = LoggerFactory.getLogger(CacheKeyBuilder.class);
 
     private static final long NULL = 3260143849197285584L;
-    private static final long DIRECTORY = 8037801855872460951L;
-    private static final long FILE = 6261364397481836986L;
-    private static final long MISSING_FILE = 7889364092196628927L;
     private static final long COLLECTION = 8625366162395921885L;
     private static final long MAP = 4507968025271448341L;
 
-    private final String rootPath;
     private final Hasher hasher;
     private final OutputStream hasherStream;
     private ByteArrayOutputStream objectBuffer;
     private ObjectOutputStream hasherObjectStream;
 
-    public CacheKeyBuilder(File rootDir) {
-        this.rootPath = rootDir.getAbsolutePath();
+    public CacheKeyBuilder() {
         this.hasher = Hashing.md5().newHasher();
         this.hasherStream = Funnels.asOutputStream(hasher);
     }
@@ -62,7 +57,8 @@ public class CacheKeyBuilder {
             if (value instanceof Callable) {
                 put(((Callable<?>) value).call());
             } else if (value instanceof File) {
-                putFile((File) value);
+                // TODO:LPTR Maybe we should warn if this happens?
+                put(((File) value).getAbsolutePath());
             } else if (value instanceof FileCollection) {
                 Set<File> files = ((FileCollection) value).getFiles();
                 if (!(files instanceof SortedSet)) {
@@ -143,31 +139,6 @@ public class CacheKeyBuilder {
             put(entry.getKey());
             put(entry.getValue());
         }
-    }
-
-    private void putFile(File file) {
-        if (!file.exists()) {
-            hasher.putLong(MISSING_FILE);
-        } else if (file.isDirectory()) {
-            hasher.putLong(DIRECTORY);
-        } else {
-            hasher.putLong(FILE);
-        }
-        putFilePath(file);
-    }
-
-    private void putFilePath(File file) {
-        String path;
-        if (rootPath != null) {
-            String absolutePath = file.getAbsolutePath();
-            if (!absolutePath.startsWith(rootPath + "/")) {
-                throw new CacheKeyException("File " + file + " is not under root path " + rootPath);
-            }
-            path = absolutePath.substring(rootPath.length() + 1);
-        } else {
-            path = file.getAbsolutePath();
-        }
-        putString(path);
     }
 
     private void putString(String value) {

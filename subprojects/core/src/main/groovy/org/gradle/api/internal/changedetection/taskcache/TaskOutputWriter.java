@@ -16,13 +16,10 @@
 
 package org.gradle.api.internal.changedetection.taskcache;
 
-import org.gradle.api.file.FileCollection;
+import com.google.common.io.ByteSink;
 
-import java.io.File;
 import java.io.IOException;
 
-public interface TaskResultPacker {
-    TaskResultOutput pack(File rootDir, FileCollection files) throws IOException;
-
-    void unpack(File rootDir, TaskResultInput result) throws IOException;
+public interface TaskOutputWriter {
+    void writeTo(ByteSink output) throws IOException;
 }

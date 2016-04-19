@@ -51,7 +51,7 @@ import java.io.File;
 public class TaskExecutionServices {
 
     TaskExecuter createTaskExecuter(TaskArtifactStateRepository repository, ListenerManager listenerManager, Gradle gradle, CachingTreeVisitor treeVisitor,
-                                    TaskResultCache taskResultCache, TaskResultPacker taskResultPacker, TaskInputHasher taskInputHasher, StartParameter startParameter) {
+                                    TaskResultCache taskResultCache, TaskOutputPacker taskOutputPacker, TaskInputHasher taskInputHasher, StartParameter startParameter) {
         // TODO - need a more comprehensible way to only collect inputs for the outer build
         //      - we are trying to ignore buildSrc here, but also avoid weirdness with use of GradleBuild tasks
         boolean isOuterBuild = gradle.getParent() == null;
@@ -71,7 +71,7 @@ public class TaskExecutionServices {
                                 cacheExecuterIfNecessary(
                                     startParameter,
                                     taskResultCache,
-                                    taskResultPacker,
+                                    taskOutputPacker,
                                     taskInputHasher,
                                     new PostExecutionAnalysisTaskExecuter(
                                         new ExecuteActionsTaskExecuter(
@@ -87,11 +87,11 @@ public class TaskExecutionServices {
         );
     }
 
-    private TaskExecuter cacheExecuterIfNecessary(StartParameter startParameter, TaskResultCache taskResultCache, TaskResultPacker taskResultPacker, TaskInputHasher taskInputHasher, TaskExecuter delegate) {
+    private TaskExecuter cacheExecuterIfNecessary(StartParameter startParameter, TaskResultCache taskResultCache, TaskOutputPacker taskOutputPacker, TaskInputHasher taskInputHasher, TaskExecuter delegate) {
         if ("true".equals(startParameter.getSystemPropertiesArgs().get("org.gradle.cache.tasks"))) {
             return new SkipCachedTaskExecuter(
                 taskResultCache,
-                taskResultPacker,
+                taskOutputPacker,
                 taskInputHasher,
                 delegate
             );
@@ -179,8 +179,8 @@ public class TaskExecutionServices {
         return new LocalDirectoryTaskResultCache(cacheDir);
     }
 
-    TaskResultPacker createTaskResultPacker() {
-        return new ZipTaskResultPacker();
+    TaskOutputPacker createTaskResultPacker() {
+        return new ZipTaskOutputPacker();
     }
 
     TaskInputHasher createTaskInputHasher(Gradle gradle) {

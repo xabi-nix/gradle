@@ -24,7 +24,7 @@ class SimpleStaleClassCleanerTest extends Specification {
     @Rule public final TestNameTestDirectoryProvider tmpDir = new TestNameTestDirectoryProvider()
     private final outputs = Mock(TaskOutputsInternal)
     private final SimpleStaleClassCleaner cleaner = new SimpleStaleClassCleaner(outputs)
-    
+
     def deletesAllPreviousOutputFiles() {
         def file1 = tmpDir.file('file1').createFile()
         def file2 = tmpDir.file('file2').createFile()

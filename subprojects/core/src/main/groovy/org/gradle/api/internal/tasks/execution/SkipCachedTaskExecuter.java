@@ -19,29 +19,28 @@ package org.gradle.api.internal.tasks.execution;
 import com.google.common.hash.HashCode;
 import org.gradle.api.GradleException;
 import org.gradle.api.internal.TaskInternal;
-import org.gradle.api.internal.TaskOutputsInternal;
 import org.gradle.api.internal.changedetection.taskcache.*;
 import org.gradle.api.internal.tasks.TaskExecuter;
 import org.gradle.api.internal.tasks.TaskExecutionContext;
+import org.gradle.api.internal.TaskOutputsInternal;
 import org.gradle.api.internal.tasks.TaskStateInternal;
 import org.gradle.util.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 
 public class SkipCachedTaskExecuter implements TaskExecuter {
     private static final Logger LOGGER = LoggerFactory.getLogger(SkipCachedTaskExecuter.class);
 
     private final TaskResultCache taskResultCache;
-    private final TaskResultPacker taskResultPacker;
+    private final TaskOutputPacker taskOutputPacker;
     private final TaskInputHasher taskInputHasher;
     private final TaskExecuter delegate;
 
-    public SkipCachedTaskExecuter(TaskResultCache taskResultCache, TaskResultPacker taskResultPacker, TaskInputHasher taskInputHasher, TaskExecuter delegate) {
+    public SkipCachedTaskExecuter(TaskResultCache taskResultCache, TaskOutputPacker taskOutputPacker, TaskInputHasher taskInputHasher, TaskExecuter delegate) {
         this.taskResultCache = taskResultCache;
-        this.taskResultPacker = taskResultPacker;
+        this.taskOutputPacker = taskOutputPacker;
         this.taskInputHasher = taskInputHasher;
         this.delegate = delegate;
         LOGGER.info("Using {}", taskResultCache.getDescription());
@@ -58,20 +57,18 @@ public class SkipCachedTaskExecuter implements TaskExecuter {
         // Do not cache tasks that explicitly state that they shouldn't be
         boolean shouldCache;
         try {
-            shouldCache = declaresOutput && taskOutputs.isCacheEnabled();
+            shouldCache = declaresOutput && taskOutputs.isCacheEnabled() && taskOutputs.isCacheAllowed();
         } catch (Throwable t) {
-            state.executed(new GradleException(String.format("Could not evaluate TaskOutput.isCacheEnabled() for %s.", task), t));
+            state.executed(new GradleException(String.format("Could not evaluate TaskOutputs.isCacheEnabled() for %s.", task), t));
             return;
         }
 
         LOGGER.debug("Determining if {} is cached already", task);
 
-        File cacheRootDir = null;
         HashCode cacheKey = null;
         if (shouldCache) {
             try {
-                cacheRootDir = task.getProject().getProjectDir();
-                cacheKey = taskInputHasher.createHash(task, cacheRootDir);
+                cacheKey = taskInputHasher.createHash(task);
                 LOGGER.debug("Cache key for {} is {}", task, cacheKey);
             } catch (CacheKeyException e) {
                 LOGGER.info(String.format("Could not build cache key for task %s", task), e);
@@ -80,15 +77,16 @@ public class SkipCachedTaskExecuter implements TaskExecuter {
             if (!declaresOutput) {
                 LOGGER.debug("Not caching {} as task declares no outputs", task);
             } else {
+                // TODO:LPTR Log if cache was not enabled or wasn't allowed
                 LOGGER.debug("Not caching {} as task output is not cacheable.", task);
             }
         }
 
         if (cacheKey != null) {
             try {
-                TaskResultInput cachedResult = taskResultCache.get(cacheKey);
+                TaskOutputReader cachedResult = taskResultCache.get(cacheKey);
                 if (cachedResult != null) {
-                    taskResultPacker.unpack(cacheRootDir, cachedResult);
+                    taskOutputPacker.unpack(taskOutputs, cachedResult);
                     LOGGER.info("Unpacked result for {} from cache (took {}).", task, clock.getTime());
                     state.upToDate("CACHED");
                     return;
@@ -102,7 +100,7 @@ public class SkipCachedTaskExecuter implements TaskExecuter {
 
         if (cacheKey != null && state.getFailure() == null) {
             try {
-                TaskResultOutput cachedResult = taskResultPacker.pack(cacheRootDir, taskOutputs.getFiles());
+                TaskOutputWriter cachedResult = taskOutputPacker.createWriter(taskOutputs);
                 taskResultCache.put(cacheKey, cachedResult);
             } catch (IOException e) {
                 LOGGER.info(String.format("Could not cache results for %s for cache key %s", task, cacheKey), e);

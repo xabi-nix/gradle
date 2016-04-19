@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package org.gradle.api.internal.project.taskfactory;
+package org.gradle.api.internal.changedetection.taskcache;
 
-import org.gradle.api.tasks.FileContentsMode;
-import org.gradle.api.tasks.FileOrderMode;
-import org.gradle.api.tasks.FilePathMode;
+import org.gradle.api.internal.TaskOutputsInternal;
 
-import java.lang.annotation.Annotation;
+import java.io.IOException;
 
-public interface FileAnnotationExtractor<T extends Annotation> {
-    FilePathMode getPathMode(T annotation);
-    FileOrderMode getOrderMode(T annotation);
-    FileContentsMode getContentsMode(T annotation);
+public interface TaskOutputPacker {
+    TaskOutputWriter createWriter(TaskOutputsInternal taskOutputs) throws IOException;
+
+    void unpack(TaskOutputsInternal taskOutputs, TaskOutputReader result) throws IOException;
 }

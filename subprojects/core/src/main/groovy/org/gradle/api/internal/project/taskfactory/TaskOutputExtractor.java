@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package org.gradle.api.internal.changedetection.taskcache;
+package org.gradle.api.internal.project.taskfactory;
 
-import com.google.common.io.ByteSink;
+import org.gradle.api.internal.TaskOutputsInternal;
 
-import java.io.IOException;
+import java.lang.annotation.Annotation;
+import java.util.concurrent.Callable;
 
-public interface TaskResultOutput {
-    void writeTo(ByteSink output) throws IOException;
+public interface TaskOutputExtractor<T extends Annotation> {
+    void extractOutput(String propertyName, Callable<Object> futureValue, TaskOutputsInternal outputs);
 }

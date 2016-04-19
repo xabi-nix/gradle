@@ -47,10 +47,10 @@ public class LocalDirectoryTaskResultCache implements TaskResultCache {
     }
 
     @Override
-    public TaskResultInput get(HashCode key) throws IOException {
+    public TaskOutputReader get(HashCode key) throws IOException {
         final File file = getFile(key);
         if (file.isFile()) {
-            return new TaskResultInput() {
+            return new TaskOutputReader() {
                 @Override
                 public ByteSource read() throws IOException {
                     return Files.asByteSource(file);
@@ -61,7 +61,7 @@ public class LocalDirectoryTaskResultCache implements TaskResultCache {
     }
 
     @Override
-    public void put(HashCode key, TaskResultOutput result) throws IOException {
+    public void put(HashCode key, TaskOutputWriter result) throws IOException {
         result.writeTo(Files.asByteSink(getFile(key)));
     }
 

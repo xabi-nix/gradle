@@ -51,7 +51,7 @@ public class SourceTask extends ConventionTask implements PatternFilterable {
      *
      * @return The source.
      */
-    @InputFiles
+    @InputFiles(paths = FilePathMode.HIERARCHY_ONLY)
     @SkipWhenEmpty
     public FileTree getSource() {
         ArrayList<Object> copy = new ArrayList<Object>(this.source);
