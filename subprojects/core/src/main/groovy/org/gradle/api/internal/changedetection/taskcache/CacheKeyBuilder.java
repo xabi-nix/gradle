@@ -100,6 +100,11 @@ public class CacheKeyBuilder {
         } else if (value instanceof Double) {
             hasher.putDouble((Double) value);
         } else if (value instanceof ByteSource) {
+            if (LOGGER.isDebugEnabled()) {
+                Hasher debugHasher = Hashing.md5().newHasher();
+                ((ByteSource) value).copyTo(Funnels.asOutputStream(debugHasher));
+                LOGGER.debug("  -> MD5 hash of ByteSource is {}", debugHasher.hash());
+            }
             ((ByteSource) value).copyTo(hasherStream);
         } else {
             if (hasherObjectStream == null) {
