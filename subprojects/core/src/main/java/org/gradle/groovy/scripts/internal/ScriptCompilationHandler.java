@@ -15,6 +15,7 @@
  */
 package org.gradle.groovy.scripts.internal;
 
+import com.google.common.hash.HashCode;
 import groovy.lang.Script;
 import org.codehaus.groovy.ast.ClassNode;
 import org.gradle.api.Action;
@@ -29,5 +30,6 @@ public interface ScriptCompilationHandler {
                       Class<? extends Script> scriptBaseClass, Action<? super ClassNode> verifier);
 
     <T extends Script, M> CompiledScript<T, M> loadFromDir(ScriptSource source, ClassLoader classLoader, File scriptCacheDir,
-                                                           File metadataCacheDir, CompileOperation<M> transformer, Class<T> scriptBaseClass, ClassLoaderId classLoaderId);
+                                                           File metadataCacheDir, CompileOperation<M> transformer, Class<T> scriptBaseClass, ClassLoaderId classLoaderId,
+                                                           HashCode classpathHash);
 }

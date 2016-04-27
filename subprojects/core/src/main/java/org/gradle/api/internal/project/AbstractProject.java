@@ -17,6 +17,7 @@
 package org.gradle.api.internal.project;
 
 import com.google.common.collect.Maps;
+import com.google.common.hash.HashCode;
 import groovy.lang.Closure;
 import groovy.lang.MissingPropertyException;
 import org.gradle.api.*;
@@ -155,6 +156,8 @@ public abstract class AbstractProject extends AbstractPluginAware implements Pro
     private String description;
 
     private final Path path;
+
+    private HashCode classpathHash;
 
     public AbstractProject(String name,
                            ProjectInternal parent,
@@ -314,6 +317,16 @@ public abstract class AbstractProject extends AbstractPluginAware implements Pro
     public void setScript(groovy.lang.Script buildScript) {
         extensibleDynamicObject.addObject(new BeanDynamicObject(buildScript).withNoProperties().withNotImplementsMissing(),
             ExtensibleDynamicObject.Location.BeforeConvention);
+    }
+
+    @Override
+    public void setClasspathHash(HashCode hash) {
+        this.classpathHash = hash;
+    }
+
+    @Override
+    public HashCode getClasspathHash() {
+        return classpathHash;
     }
 
     public ScriptSource getBuildScriptSource() {

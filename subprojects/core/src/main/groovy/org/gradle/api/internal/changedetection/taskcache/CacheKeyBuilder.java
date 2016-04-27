@@ -81,8 +81,8 @@ public class CacheKeyBuilder {
         LOGGER.debug("Digesting {} for cache key", value);
         if (value == null) {
             hasher.putLong(NULL);
-        } else if (value instanceof String) {
-            putString((String) value);
+        } else if (value instanceof CharSequence) {
+            hasher.putString((CharSequence) value, Charsets.UTF_8);
         } else if (value instanceof Boolean) {
             hasher.putBoolean((Boolean) value);
         } else if (value instanceof byte[]) {
@@ -99,6 +99,8 @@ public class CacheKeyBuilder {
             hasher.putFloat((Float) value);
         } else if (value instanceof Double) {
             hasher.putDouble((Double) value);
+        } else if (value instanceof HashCode) {
+            hasher.putBytes(((HashCode) value).asBytes());
         } else if (value instanceof ByteSource) {
             if (LOGGER.isDebugEnabled()) {
                 Hasher debugHasher = Hashing.md5().newHasher();
@@ -144,10 +146,5 @@ public class CacheKeyBuilder {
             put(entry.getKey());
             put(entry.getValue());
         }
-    }
-
-    private void putString(String value) {
-        // Use consistent encoding to ensure match between platforms
-        hasher.putString(value, Charsets.UTF_16);
     }
 }

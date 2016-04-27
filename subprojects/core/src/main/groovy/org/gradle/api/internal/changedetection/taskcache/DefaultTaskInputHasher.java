@@ -18,6 +18,7 @@ package org.gradle.api.internal.changedetection.taskcache;
 
 import com.google.common.hash.HashCode;
 import org.gradle.api.internal.TaskInternal;
+import org.gradle.api.internal.project.ProjectInternal;
 
 public class DefaultTaskInputHasher implements TaskInputHasher {
 
@@ -30,6 +31,10 @@ public class DefaultTaskInputHasher implements TaskInputHasher {
     @Override
     public HashCode createHash(TaskInternal task) {
         CacheKeyBuilder cacheKeyBuilder = new CacheKeyBuilder();
+
+        // Make sure we factor in the script classloader
+        HashCode classpathHash = ((ProjectInternal) task.getProject()).getClasspathHash();
+        cacheKeyBuilder.put(classpathHash);
 
         // Make sure if cache format changes we don't have collisions
         cacheKeyBuilder.put(cacheVersion);

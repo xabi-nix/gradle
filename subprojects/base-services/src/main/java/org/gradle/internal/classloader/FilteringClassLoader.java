@@ -16,6 +16,9 @@
 
 package org.gradle.internal.classloader;
 
+import com.google.common.hash.Funnel;
+import com.google.common.hash.Funnels;
+import com.google.common.hash.Hasher;
 import org.gradle.internal.reflect.JavaMethod;
 import org.gradle.internal.reflect.JavaReflectionUtil;
 
@@ -29,6 +32,7 @@ import java.util.*;
  */
 public class FilteringClassLoader extends ClassLoader implements ClassLoaderHierarchy {
     private static final ClassLoader EXT_CLASS_LOADER;
+    // TODO:LPTR These should not be HashSets because of ordering
     private static final Set<String> SYSTEM_PACKAGES = new HashSet<String>();
     private final Set<String> packageNames = new HashSet<String>();
     private final Set<String> packagePrefixes = new HashSet<String>();
@@ -234,6 +238,7 @@ public class FilteringClassLoader extends ClassLoader implements ClassLoaderHier
     }
 
     public static class Spec extends ClassLoaderSpec {
+        private static final Funnel<Iterable<? extends CharSequence>> UNENCODED_STRINGS_FUNNEL = Funnels.sequentialFunnel(Funnels.unencodedCharsFunnel());
 
         final Set<String> packageNames;
         final Set<String> packagePrefixes;
@@ -245,6 +250,7 @@ public class FilteringClassLoader extends ClassLoader implements ClassLoaderHier
 
 
         public Spec(Collection<String> classNames, Collection<String> packageNames, Collection<String> packagePrefixes, Collection<String> resourcePrefixes, Collection<String> resourceNames, Collection<String> disallowedClassNames, Collection<String> disallowedPackagePrefixes) {
+            // TODO:LPTR These should not be HashSets because of ordering
             this.classNames = new HashSet<String>(classNames);
             this.packageNames = new HashSet<String>(packageNames);
             this.packagePrefixes = new HashSet<String>(packagePrefixes);
@@ -281,6 +287,17 @@ public class FilteringClassLoader extends ClassLoader implements ClassLoaderHier
                     ^ classNames.hashCode()
                     ^ disallowedClassNames.hashCode()
                     ^ disallowedPackagePrefixes.hashCode();
+        }
+
+        public void appendToHash(Hasher hasher) {
+            hasher
+                .putObject(packageNames, UNENCODED_STRINGS_FUNNEL)
+                .putObject(packagePrefixes, UNENCODED_STRINGS_FUNNEL)
+                .putObject(resourceNames, UNENCODED_STRINGS_FUNNEL)
+                .putObject(resourcePrefixes, UNENCODED_STRINGS_FUNNEL)
+                .putObject(classNames, UNENCODED_STRINGS_FUNNEL)
+                .putObject(disallowedClassNames, UNENCODED_STRINGS_FUNNEL)
+                .putObject(disallowedPackagePrefixes, UNENCODED_STRINGS_FUNNEL);
         }
     }
 }

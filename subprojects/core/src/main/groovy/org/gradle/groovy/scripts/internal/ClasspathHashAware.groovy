@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 the original author or authors.
+ * Copyright 2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,25 +14,11 @@
  * limitations under the License.
  */
 
-package org.gradle.groovy.scripts.internal;
+package org.gradle.groovy.scripts.internal
 
-import com.google.common.hash.HashCode;
-import groovy.lang.Script;
+import com.google.common.hash.HashCode
 
-public interface CompiledScript<T extends Script, D> {
-    /**
-     * Returns true if the `run()` method of this script is effectively empty and can be ignored.
-     */
-    boolean getRunDoesSomething();
-
-    /**
-     * Returns true if the script declares any methods.
-     */
-    boolean getHasMethods();
-
-    Class<? extends T> loadClass();
-
-    D getData();
-
+interface ClasspathHashAware {
+    void setClasspathHash(HashCode hash);
     HashCode getClasspathHash();
 }

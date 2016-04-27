@@ -16,6 +16,8 @@
 
 package org.gradle.groovy.scripts.internal
 
+import com.google.common.hash.HashCode
+import com.google.common.hash.Hashing
 import org.gradle.api.internal.initialization.loadercache.ClassLoaderId
 import org.gradle.api.internal.initialization.loadercache.DummyClassLoaderCache
 import org.gradle.api.internal.project.ProjectScript
@@ -43,6 +45,7 @@ class BuildScriptTransformerSpec extends Specification {
     File scriptCacheDir
     File metadataCacheDir
     private classLoaderId = Mock(ClassLoaderId)
+    private HashCode hash = Hashing.md5().hashUnencodedChars("TEST")
 
     def setup() {
         File testProjectDir = tmpDir.createDir("projectDir");
@@ -59,7 +62,7 @@ class BuildScriptTransformerSpec extends Specification {
         def transformer = new BuildScriptTransformer(source, target)
         def operation = new FactoryBackedCompileOperation<BuildScriptData>("id", transformer, transformer, new BuildScriptDataSerializer())
         scriptCompilationHandler.compileToDir(source, loader, scriptCacheDir, metadataCacheDir, operation, ProjectScript, Actions.doNothing())
-        return scriptCompilationHandler.loadFromDir(source, loader, scriptCacheDir, metadataCacheDir, operation, ProjectScript, classLoaderId)
+        return scriptCompilationHandler.loadFromDir(source, loader, scriptCacheDir, metadataCacheDir, operation, ProjectScript, classLoaderId, hash)
     }
 
     def "empty script does not contain any code"() {

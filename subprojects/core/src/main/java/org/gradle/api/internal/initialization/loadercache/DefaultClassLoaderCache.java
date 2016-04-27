@@ -21,6 +21,9 @@ import com.google.common.base.Objects;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
 import org.gradle.api.Nullable;
 import org.gradle.internal.classloader.FilteringClassLoader;
 import org.gradle.internal.classloader.MutableURLClassLoader;
@@ -75,8 +78,13 @@ public class DefaultClassLoaderCache implements ClassLoaderCache {
         if (cachedLoader == null) {
             ClassLoader classLoader;
             CachedClassLoader parentCachedLoader = null;
-            long snapshotHash = spec.classPathSnapshot.getStrongHash().asLong();
-            final long hashCode = 31 * snapshotHash + (spec.filterSpec != null ? spec.filterSpec.hashCode() : 0);
+            HashCode hashCode = spec.classPathSnapshot.getStrongHash();
+            if (spec.filterSpec != null) {
+                Hasher hasher = Hashing.md5().newHasher();
+                hasher.putBytes(hashCode.asBytes());
+                spec.filterSpec.appendToHash(hasher);
+                hashCode = hasher.hash();
+            }
             if (spec.isFiltered()) {
                 parentCachedLoader = getAndRetainLoader(classPath, spec.unfiltered(), id);
                 classLoader = new HashedFilteringClassLoader(parentCachedLoader, spec, hashCode);
@@ -98,7 +106,7 @@ public class DefaultClassLoaderCache implements ClassLoaderCache {
     }
 
     public interface HashedClassLoader {
-        long getClassLoaderHash();
+        HashCode getClassLoaderHash();
     }
 
     private static class ClassLoaderSpec {
@@ -139,29 +147,29 @@ public class DefaultClassLoaderCache implements ClassLoaderCache {
     }
 
     private static class HashedFilteringClassLoader extends FilteringClassLoader implements HashedClassLoader {
-        private final long hashCode;
+        private final HashCode hashCode;
 
-        public HashedFilteringClassLoader(CachedClassLoader parentCachedLoader, ClassLoaderSpec spec, long hashCode) {
+        public HashedFilteringClassLoader(CachedClassLoader parentCachedLoader, ClassLoaderSpec spec, HashCode hashCode) {
             super(parentCachedLoader.classLoader, spec.filterSpec);
             this.hashCode = hashCode;
         }
 
         @Override
-        public long getClassLoaderHash() {
+        public HashCode getClassLoaderHash() {
             return hashCode;
         }
     }
 
     private static class HashedMutableURLClassLoader extends MutableURLClassLoader implements HashedClassLoader {
-        private final long hashCode;
+        private final HashCode hashCode;
 
-        public HashedMutableURLClassLoader(ClassLoaderSpec spec, ClassPath classPath, long hashCode) {
+        public HashedMutableURLClassLoader(ClassLoaderSpec spec, ClassPath classPath, HashCode hashCode) {
             super(spec.parent, classPath);
             this.hashCode = hashCode;
         }
 
         @Override
-        public long getClassLoaderHash() {
+        public HashCode getClassLoaderHash() {
             return hashCode;
         }
     }

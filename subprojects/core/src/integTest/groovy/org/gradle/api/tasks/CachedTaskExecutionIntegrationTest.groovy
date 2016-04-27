@@ -18,6 +18,9 @@ package org.gradle.api.tasks
 
 import org.gradle.integtests.fixtures.AbstractIntegrationSpec
 
+import java.util.jar.JarOutputStream
+import java.util.zip.ZipEntry
+
 class CachedTaskExecutionIntegrationTest extends AbstractIntegrationSpec {
     def cacheDir = testDirectoryProvider.createDir("task-cache")
 
@@ -66,24 +69,102 @@ class CachedTaskExecutionIntegrationTest extends AbstractIntegrationSpec {
 
     def "jar tasks get cached even when output file is changed"() {
         file("settings.gradle") << "rootProject.name = 'test'"
+        buildFile << """
+            if (file("toggle.txt").exists()) {
+                jar {
+                    destinationDir = file("\$buildDir/other-jar")
+                    baseName = "other-jar"
+                }
+            }
+        """
+
         expect:
         succeedsWithCache "assemble"
         skippedTasks.empty
         file("build/libs/test.jar").isFile()
 
-        buildFile << """
-            jar {
-                destinationDir = file("\$buildDir/other-jar")
-                baseName = "other-jar"
-            }
-        """
         succeedsWithCache "clean"
         !file("build/libs/test.jar").isFile()
+
+        file("toggle.txt").touch()
 
         succeedsWithCache "assemble"
         skippedTasks.contains ":jar"
         !file("build/libs/test.jar").isFile()
         file("build/other-jar/other-jar.jar").isFile()
+    }
+
+    def "nothing gets cached when build script changes"() {
+        file("settings.gradle") << "rootProject.name = 'test'"
+
+        expect:
+        succeedsWithCache "assemble"
+        skippedTasks.empty
+        file("build/libs/test.jar").isFile()
+
+        succeedsWithCache "clean"
+        !file("build/libs/test.jar").isFile()
+
+        buildFile << """
+            // Some comment
+        """
+
+        succeedsWithCache "assemble"
+        skippedTasks.empty
+        file("build/libs/test.jar").isFile()
+    }
+
+    def "nothing gets cached when a build script dependency changes"() {
+        file("settings.gradle") << "rootProject.name = 'test'"
+
+        buildFile << """
+            buildscript {
+                dependencies {
+                    classpath files("lib.jar")
+                }
+            }
+        """
+
+        when:
+        file("lib.jar").bytes = jarWithContents(["test.txt": "original contents"])
+        succeedsWithCache "assemble"
+
+        then:
+        skippedTasks.empty
+        file("build/libs/test.jar").isFile()
+
+        when:
+        succeedsWithCache "clean"
+
+        then:
+        !file("build/libs/test.jar").isFile()
+
+        when:
+        // File system may not see change without this wait
+        Thread.sleep(1000L);
+        file("lib.jar").bytes = jarWithContents(["test.txt": "modified contents"])
+
+        succeedsWithCache "assemble"
+
+        then:
+        skippedTasks.empty
+        file("build/libs/test.jar").isFile()
+    }
+
+    def jarWithContents(Map<String, String> contents) {
+        def out = new ByteArrayOutputStream()
+        def jarOut = new JarOutputStream(out)
+        try {
+            contents.each { file, fileContents ->
+                def zipEntry = new ZipEntry(file)
+                zipEntry.setTime(0)
+                jarOut.putNextEntry(zipEntry)
+                jarOut << fileContents
+            }
+        } finally {
+            jarOut.close()
+        }
+        return out.toByteArray()
     }
 
     def "clean doesn't get cached"() {
