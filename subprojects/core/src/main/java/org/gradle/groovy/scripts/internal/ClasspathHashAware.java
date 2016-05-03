@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package org.gradle.groovy.scripts.internal
+package org.gradle.groovy.scripts.internal;
 
-import com.google.common.hash.HashCode
+import com.google.common.hash.HashCode;
 
-interface ClasspathHashAware {
-    void setClasspathHash(HashCode hash);
-    HashCode getClasspathHash();
+public interface ClasspathHashAware {
+   void setClasspathHash(HashCode hash);
+   HashCode getClasspathHash();
 }
