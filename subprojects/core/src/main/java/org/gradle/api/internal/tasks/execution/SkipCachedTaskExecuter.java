@@ -50,14 +50,12 @@ public class SkipCachedTaskExecuter implements TaskExecuter {
     public void execute(TaskInternal task, TaskStateInternal state, TaskExecutionContext context) {
         Clock clock = new Clock();
 
-        // Do not try to cache tasks that declares no output
         TaskOutputsInternal taskOutputs = task.getOutputs();
-        boolean declaresOutput = taskOutputs.getDeclaresOutput();
+        boolean cacheAllowed = taskOutputs.isCacheAllowed();
 
-        // Do not cache tasks that explicitly state that they shouldn't be
         boolean shouldCache;
         try {
-            shouldCache = declaresOutput && taskOutputs.isCacheEnabled() && taskOutputs.isCacheAllowed();
+            shouldCache = cacheAllowed && taskOutputs.isCacheEnabled();
         } catch (Throwable t) {
             state.executed(new GradleException(String.format("Could not evaluate TaskOutputs.isCacheEnabled() for %s.", task), t));
             return;
@@ -74,10 +72,9 @@ public class SkipCachedTaskExecuter implements TaskExecuter {
                 LOGGER.info(String.format("Could not build cache key for task %s", task), e);
             }
         } else {
-            if (!declaresOutput) {
-                LOGGER.debug("Not caching {} as task declares no outputs", task);
+            if (!cacheAllowed) {
+                LOGGER.debug("Not caching {} as it is not allowed", task);
             } else {
-                // TODO:LPTR Log if cache was not enabled or wasn't allowed
                 LOGGER.debug("Not caching {} as task output is not cacheable.", task);
             }
         }

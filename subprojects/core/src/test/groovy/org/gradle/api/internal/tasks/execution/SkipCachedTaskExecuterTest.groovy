@@ -51,7 +51,6 @@ public class SkipCachedTaskExecuterTest extends Specification {
 
         then:
         1 * task.getOutputs() >> outputs
-        1 * outputs.getDeclaresOutput() >> true
         1 * outputs.isCacheEnabled() >> true
         1 * outputs.isCacheAllowed() >> true
 
@@ -70,7 +69,6 @@ public class SkipCachedTaskExecuterTest extends Specification {
 
         then:
         1 * task.getOutputs() >> outputs
-        1 * outputs.getDeclaresOutput() >> true
         1 * outputs.isCacheEnabled() >> true
         1 * outputs.isCacheAllowed() >> true
 
@@ -93,7 +91,6 @@ public class SkipCachedTaskExecuterTest extends Specification {
 
         then:
         1 * task.getOutputs() >> outputs
-        1 * outputs.getDeclaresOutput() >> true
         1 * outputs.isCacheEnabled() >> true
         1 * outputs.isCacheAllowed() >> true
 
@@ -106,26 +103,13 @@ public class SkipCachedTaskExecuterTest extends Specification {
         0 * _
     }
 
-    def "executes task when task doesn't declare any outputs"() {
-        when:
-        executer.execute(task, taskState, taskContext)
-
-        then:
-        1 * task.getOutputs() >> outputs
-        1 * outputs.getDeclaresOutput() >> false
-
-        then:
-        1 * delegate.execute(task, taskState, taskContext)
-        0 * _
-    }
-
     def "executes task and does not cache results when cacheIf is false"() {
         when:
         executer.execute(task, taskState, taskContext)
 
         then:
         1 * task.getOutputs() >> outputs
-        1 * outputs.getDeclaresOutput() >> true
+        1 * outputs.isCacheAllowed() >> true
         1 * outputs.isCacheEnabled() >> false
 
         then:
@@ -133,14 +117,12 @@ public class SkipCachedTaskExecuterTest extends Specification {
         0 * _
     }
 
-    def "executes task and does not cache results when cacheIf is true but task is not allowed to use cache anyway"() {
+    def "executes task and does not cache results when task is not allowed to use cache"() {
         when:
         executer.execute(task, taskState, taskContext)
 
         then:
         1 * task.getOutputs() >> outputs
-        1 * outputs.getDeclaresOutput() >> true
-        1 * outputs.isCacheEnabled() >> true
         1 * outputs.isCacheAllowed() >> false
 
         then:

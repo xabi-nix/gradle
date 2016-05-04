@@ -52,7 +52,7 @@ public class CacheKeyBuilder {
         this.hasherStream = Funnels.asOutputStream(hasher);
     }
 
-    public void put(Object value) {
+    public CacheKeyBuilder put(Object value) {
         try {
             if (value instanceof Callable) {
                 put(((Callable<?>) value).call());
@@ -75,6 +75,7 @@ public class CacheKeyBuilder {
         } catch (Exception e) {
             throw Throwables.propagate(e);
         }
+        return this;
     }
 
     private void putInternal(Object value) throws IOException {

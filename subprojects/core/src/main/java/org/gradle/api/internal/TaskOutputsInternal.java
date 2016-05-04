@@ -27,11 +27,6 @@ public interface TaskOutputsInternal extends TaskOutputs {
     Spec<? super TaskInternal> getUpToDateSpec();
 
     /**
-     * Returns true if the task declares any outputs.
-     */
-    boolean getDeclaresOutput();
-
-    /**
      * Check if caching is explicitly enabled for the task outputs.
      */
     boolean isCacheEnabled();

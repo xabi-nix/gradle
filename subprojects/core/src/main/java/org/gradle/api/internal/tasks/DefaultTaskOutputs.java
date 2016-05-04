@@ -64,6 +64,10 @@ public class DefaultTaskOutputs implements TaskOutputsInternal {
 
     @Override
     public boolean isCacheAllowed() {
+        // If there's nothing to cache, we don't allow caching
+        if (propertyOutputs.isEmpty()) {
+            return false;
+        }
         for (TaskPropertyOutput output : propertyOutputs.values()) {
             // When a single property refers to multiple outputs, we don't know how to cache those
             if (output instanceof MultiPathTaskPropertyOutput) {
@@ -113,12 +117,7 @@ public class DefaultTaskOutputs implements TaskOutputsInternal {
 
     @Override
     public boolean getHasOutput() {
-        return getDeclaresOutput() || !upToDateSpec.getSpecs().isEmpty();
-    }
-
-    @Override
-    public boolean getDeclaresOutput() {
-        return !propertyOutputs.isEmpty();
+        return !propertyOutputs.isEmpty() || !upToDateSpec.getSpecs().isEmpty();
     }
 
     @Override
