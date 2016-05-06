@@ -16,6 +16,7 @@
 
 package org.gradle.integtests.fixtures.daemon
 
+import org.gradle.launcher.daemon.common.DaemonState
 import org.gradle.util.GradleVersion
 
 class LegacyDaemon extends AbstractDaemonFixture {
@@ -30,7 +31,7 @@ class LegacyDaemon extends AbstractDaemonFixture {
         }
     }
 
-    protected void waitForState(State state) {
+    protected void waitForState(DaemonState state) {
         def expiry = System.currentTimeMillis() + STATE_CHANGE_TIMEOUT
         def lastLogState = logFileProbe.currentState
         while (expiry > System.currentTimeMillis() && lastLogState != state) {
@@ -45,7 +46,7 @@ Current state is ${lastLogState}.""")
     }
 
     @Override
-    protected void assertHasState(State state) {
+    protected void assertHasState(DaemonState state) {
         assert logFileProbe.currentState == state
     }
 

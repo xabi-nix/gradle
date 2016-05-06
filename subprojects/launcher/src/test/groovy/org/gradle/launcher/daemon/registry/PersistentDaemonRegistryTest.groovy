@@ -17,6 +17,7 @@
 package org.gradle.launcher.daemon.registry
 
 import org.gradle.internal.nativeintegration.ProcessEnvironment
+import org.gradle.launcher.daemon.common.DaemonState
 import org.gradle.launcher.daemon.context.DaemonContext
 import org.gradle.launcher.daemon.context.DaemonContextBuilder
 import org.gradle.internal.remote.Address
@@ -38,7 +39,7 @@ class PersistentDaemonRegistryTest extends Specification {
 
     def "corrupt registry file is ignored"() {
         given:
-        registry.store(new DaemonInfo(address(), daemonContext(), "password", true))
+        registry.store(new DaemonInfo(address(), daemonContext(), "password", DaemonState.Idle))
 
         expect:
         registry.all.size() == 1
@@ -55,7 +56,7 @@ class PersistentDaemonRegistryTest extends Specification {
         def address = address()
 
         and:
-        registry.store(new DaemonInfo(address, daemonContext(), "password", true))
+        registry.store(new DaemonInfo(address, daemonContext(), "password", DaemonState.Idle))
 
         when:
         registry.remove(address)
@@ -83,7 +84,7 @@ class PersistentDaemonRegistryTest extends Specification {
         def address = address()
 
         when:
-        registry.markBusy(address)
+        registry.markState(address, DaemonState.Busy)
 
         then:
         registry.all.empty
@@ -94,7 +95,7 @@ class PersistentDaemonRegistryTest extends Specification {
         def address = address()
 
         when:
-        registry.markIdle(address)
+        registry.markState(address, DaemonState.Idle)
 
         then:
         registry.all.empty

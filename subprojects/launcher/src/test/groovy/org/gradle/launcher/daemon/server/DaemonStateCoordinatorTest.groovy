@@ -296,7 +296,7 @@ class DaemonStateCoordinatorTest extends ConcurrentSpec {
 
     def "requestStop stops immediately when idle"() {
         expect:
-        coordinator.idle
+        coordinator.started
 
         when:
         coordinator.requestStop()
@@ -596,7 +596,7 @@ class DaemonStateCoordinatorTest extends ConcurrentSpec {
         coordinator.lastActivityAt = 100
 
         then:
-        coordinator.idle
+        coordinator.started
         coordinator.getIdleMillis(110) == 10
     }
 }

@@ -23,9 +23,10 @@ import org.gradle.cache.internal.FileIntegrityViolationSuppressingPersistentStat
 import org.gradle.cache.internal.FileLockManager;
 import org.gradle.cache.internal.OnDemandFileAccess;
 import org.gradle.cache.internal.SimpleStateCache;
-import org.gradle.launcher.daemon.context.DaemonContext;
 import org.gradle.internal.remote.Address;
 import org.gradle.internal.serialize.DefaultSerializer;
+import org.gradle.launcher.daemon.context.DaemonContext;
+import org.gradle.launcher.daemon.common.DaemonState;
 
 import java.io.File;
 import java.util.LinkedList;
@@ -56,6 +57,7 @@ public class PersistentDaemonRegistry implements DaemonRegistry {
                 ));
     }
 
+    @Override
     public List<DaemonInfo> getAll() {
         lock.lock();
         try {
@@ -70,29 +72,33 @@ public class PersistentDaemonRegistry implements DaemonRegistry {
         }
     }
 
-    public List<DaemonInfo> getIdle() {
-        lock.lock();
-        try {
-            List<DaemonInfo> out = new LinkedList<DaemonInfo>();
-            List<DaemonInfo> all = getAll();
-            for (DaemonInfo d : all) {
-                if (d.isIdle()) {
-                    out.add(d);
-                }
-            }
-            return out;
-        } finally {
-            lock.unlock();
-        }
+    @Override
+    public List<DaemonInfo> getStarted() {
+        return getDaemonsInState(DaemonState.Started);
     }
 
+    @Override
+    public List<DaemonInfo> getIdle() {
+        return getDaemonsInState(DaemonState.Idle);
+    }
+
+    @Override
     public List<DaemonInfo> getBusy() {
+        return getDaemonsInState(DaemonState.Busy);
+    }
+
+    @Override
+    public List<DaemonInfo> getStopped() {
+        return getDaemonsInState(DaemonState.Stopped);
+    }
+
+    private List<DaemonInfo> getDaemonsInState(final DaemonState state) {
         lock.lock();
         try {
             List<DaemonInfo> out = new LinkedList<DaemonInfo>();
             List<DaemonInfo> all = getAll();
             for (DaemonInfo d : all) {
-                if (!d.isIdle()) {
+                if (d.getState() == state) {
                     out.add(d);
                 }
             }
@@ -120,33 +126,15 @@ public class PersistentDaemonRegistry implements DaemonRegistry {
         }
     }
 
-    public void markBusy(final Address address) {
+    public void markState(final Address address, final DaemonState state) {
         lock.lock();
-        LOGGER.debug("Marking busy by address: {}", address);
+        LOGGER.debug("Marking {} by address: {}", state, address);
         try {
             cache.update(new PersistentStateCache.UpdateAction<DaemonRegistryContent>() {
                 public DaemonRegistryContent update(DaemonRegistryContent oldValue) {
                     DaemonInfo daemonInfo = oldValue != null ? oldValue.getInfo(address) : null;
                     if (daemonInfo != null) {
-                        daemonInfo.setIdle(false);
-                    }
-                    // Else, has been removed by something else - ignore
-                    return oldValue;
-                }});
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    public void markIdle(final Address address) {
-        lock.lock();
-        LOGGER.debug("Marking idle by address: {}", address);
-        try {
-            cache.update(new PersistentStateCache.UpdateAction<DaemonRegistryContent>() {
-                public DaemonRegistryContent update(DaemonRegistryContent oldValue) {
-                    DaemonInfo daemonInfo = oldValue != null ? oldValue.getInfo(address) : null;
-                    if (daemonInfo != null) {
-                        daemonInfo.setIdle(true);
+                        daemonInfo.setState(state);
                     }
                     // Else, has been removed by something else - ignore
                     return oldValue;
@@ -161,7 +149,7 @@ public class PersistentDaemonRegistry implements DaemonRegistry {
         final Address address = info.getAddress();
         final DaemonContext daemonContext = info.getContext();
         final String password = info.getPassword();
-        final boolean idle = info.isIdle();
+        final DaemonState state = info.getState();
 
         lock.lock();
         LOGGER.debug("Storing daemon address: {}, context: {}", address, daemonContext);
@@ -172,7 +160,7 @@ public class PersistentDaemonRegistry implements DaemonRegistry {
                         //it means the registry didn't exist yet
                         oldValue = new DaemonRegistryContent();
                     }
-                    DaemonInfo daemonInfo = new DaemonInfo(address, daemonContext, password, idle);
+                    DaemonInfo daemonInfo = new DaemonInfo(address, daemonContext, password, state);
                     oldValue.setStatus(address, daemonInfo);
                     return oldValue;
                 }

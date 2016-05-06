@@ -16,6 +16,7 @@
 package org.gradle.launcher.daemon.server
 
 import org.gradle.internal.remote.Address
+import org.gradle.launcher.daemon.common.DaemonState
 import org.gradle.launcher.daemon.context.DaemonContext
 import org.gradle.launcher.daemon.registry.DaemonInfo
 import org.gradle.launcher.daemon.registry.EmbeddedDaemonRegistry
@@ -33,8 +34,8 @@ class LruDaemonExpirationStrategyTest extends Specification {
 
     def "only expires one daemon"() {
         when:
-        DaemonInfo d1 = registerDaemon(true)
-        DaemonInfo d2 = registerDaemon(true)
+        DaemonInfo d1 = registerDaemon(DaemonState.Idle)
+        DaemonInfo d2 = registerDaemon(DaemonState.Idle)
 
         then:
         wouldExpire(d1)
@@ -43,9 +44,9 @@ class LruDaemonExpirationStrategyTest extends Specification {
 
     def "only expires idle daemons"() {
         when:
-        DaemonInfo d1 = registerDaemon(false)
-        DaemonInfo d2 = registerDaemon(true)
-        DaemonInfo d3 = registerDaemon(true)
+        DaemonInfo d1 = registerDaemon(DaemonState.Busy)
+        DaemonInfo d2 = registerDaemon(DaemonState.Idle)
+        DaemonInfo d3 = registerDaemon(DaemonState.Idle)
 
         then:
         !wouldExpire(d1)
@@ -55,8 +56,8 @@ class LruDaemonExpirationStrategyTest extends Specification {
 
     def "doesn't expire if all daemons are busy"() {
         when:
-        DaemonInfo d1 = registerDaemon(false)
-        DaemonInfo d2 = registerDaemon(false)
+        DaemonInfo d1 = registerDaemon(DaemonState.Busy)
+        DaemonInfo d2 = registerDaemon(DaemonState.Busy)
 
         then:
         !wouldExpire(d1)
@@ -65,21 +66,20 @@ class LruDaemonExpirationStrategyTest extends Specification {
 
     def "doesn't expire if only one daemon is running"() {
         when:
-        DaemonInfo info = registerDaemon(true)
+        DaemonInfo info = registerDaemon(DaemonState.Idle)
 
         then:
         !wouldExpire(info)
     }
 
-    private DaemonInfo registerDaemon(boolean idle) {
+    private DaemonInfo registerDaemon(DaemonState state) {
         final int id = registry.getAll().size() + 1
         final long lastIdleTime = id * 1000;
         Address daemonAddress = createAddress(id)
         DaemonContext context = Mock(DaemonContext) {
             _ * getPid() >> { id }
         }
-        DaemonInfo info = new DaemonInfo(daemonAddress, context, "password", false, new MockTimeProvider(lastIdleTime))
-        info.setIdle(idle)
+        DaemonInfo info = new DaemonInfo(daemonAddress, context, "password", state, new MockTimeProvider(lastIdleTime))
         registry.store(info)
         return info
     }

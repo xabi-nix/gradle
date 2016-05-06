@@ -17,6 +17,7 @@ package org.gradle.launcher.daemon.registry
 
 import org.gradle.launcher.daemon.context.DaemonContext
 import org.gradle.internal.remote.Address
+import org.gradle.launcher.daemon.common.DaemonState
 import spock.lang.Specification
 
 class EmbeddedDaemonRegistrySpec extends Specification {
@@ -38,8 +39,8 @@ class EmbeddedDaemonRegistrySpec extends Specification {
 
     def "lifecycle"() {
         given:
-        store(new DaemonInfo(address(10), context, "password", true))
-        store(new DaemonInfo(address(20), context, "password", true))
+        store(new DaemonInfo(address(10), context, "password", DaemonState.Idle))
+        store(new DaemonInfo(address(20), context, "password", DaemonState.Idle))
 
         expect:
         all.size() == 2
@@ -47,7 +48,7 @@ class EmbeddedDaemonRegistrySpec extends Specification {
         busy.empty
 
         when:
-        markBusy(address(10))
+        markState(address(10), DaemonState.Busy)
 
         then:
         all.size() == 2
@@ -55,7 +56,7 @@ class EmbeddedDaemonRegistrySpec extends Specification {
         busy.size() == 1
 
         when:
-        markBusy(address(20))
+        markState(address(20), DaemonState.Busy)
 
         then:
         all.size() == 2
@@ -63,8 +64,8 @@ class EmbeddedDaemonRegistrySpec extends Specification {
         busy.size() == 2
 
         when:
-        markIdle(address(10))
-        markIdle(address(20))
+        markState(address(10), DaemonState.Idle)
+        markState(address(20), DaemonState.Idle)
 
         then:
         all.size() == 2

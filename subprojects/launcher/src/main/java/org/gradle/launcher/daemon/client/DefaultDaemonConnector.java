@@ -125,8 +125,7 @@ public class DefaultDaemonConnector implements DaemonConnector {
     }
 
     private DaemonClientConnection connectToDaemonWithId(DaemonStartupInfo daemon, ExplainingSpec<DaemonContext> constraint) throws ConnectException {
-        // Look for 'our' daemon among the busy daemons - a daemon will start in busy state so that nobody else will grab it.
-        for (DaemonInfo daemonInfo : daemonRegistry.getBusy()) {
+        for (DaemonInfo daemonInfo : daemonRegistry.getStarted()) {
             if (daemonInfo.getUid().equals(daemon.getUid())) {
                 try {
                     if (!constraint.isSatisfiedBy(daemonInfo.getContext())) {
@@ -165,6 +164,7 @@ public class DefaultDaemonConnector implements DaemonConnector {
 
         public boolean maybeStaleAddress(Exception failure) {
             LOGGER.info("{}{}", DaemonMessages.REMOVING_DAEMON_ADDRESS_ON_FAILURE, daemon);
+            // TODO(ew): Mark as stopped instead?
             daemonRegistry.remove(daemon.getAddress());
             return exposeAsStale;
         }

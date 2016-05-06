@@ -16,6 +16,7 @@
 
 package org.gradle.launcher.daemon.registry
 
+import org.gradle.launcher.daemon.common.DaemonState
 import org.gradle.launcher.daemon.context.DaemonContext
 import org.gradle.launcher.daemon.registry.DaemonRegistry.EmptyRegistryException
 import org.gradle.launcher.daemon.server.DomainRegistryUpdater
@@ -37,13 +38,13 @@ public class DomainRegistryUpdaterTest extends Specification {
         updater.onCompleteActivity()
 
         then:
-        1 * registry.markIdle(address)
+        1 * registry.markState(address, DaemonState.Idle)
     }
 
     def "ignores empty cache on marking idle"() {
         given:
         updater.onStart(address)
-        registry.markIdle(address) >> { throw new EmptyRegistryException("") }
+        registry.markState(address, DaemonState.Idle) >> { throw new EmptyRegistryException("") }
 
         when:
         updater.onCompleteActivity()
@@ -60,13 +61,13 @@ public class DomainRegistryUpdaterTest extends Specification {
         updater.onStartActivity()
 
         then:
-        1 * registry.markBusy(address)
+        1 * registry.markState(address, DaemonState.Busy)
     }
 
     def "ignores empty cache on marking busy"() {
         given:
         updater.onStart(address)
-        registry.markBusy(address) >> { throw new EmptyRegistryException("") }
+        registry.markState(address, DaemonState.Busy) >> { throw new EmptyRegistryException("") }
 
         when:
         updater.onStartActivity()

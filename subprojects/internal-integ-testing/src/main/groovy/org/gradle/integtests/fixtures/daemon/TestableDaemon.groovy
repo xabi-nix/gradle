@@ -16,6 +16,7 @@
 
 package org.gradle.integtests.fixtures.daemon
 
+import org.gradle.launcher.daemon.common.DaemonState
 import org.gradle.launcher.daemon.registry.DaemonRegistry
 
 class TestableDaemon extends AbstractDaemonFixture {
@@ -28,7 +29,7 @@ class TestableDaemon extends AbstractDaemonFixture {
         this.registryProbe = new DaemonRegistryStateProbe(registry, context)
     }
 
-    protected void waitForState(State state) {
+    protected void waitForState(DaemonState state) {
         def expiry = System.currentTimeMillis() + STATE_CHANGE_TIMEOUT
         def lastRegistryState = registryProbe.currentState
         def lastLogState = logFileProbe.currentState
@@ -45,7 +46,7 @@ Current registry state is ${lastRegistryState} and current log state is ${lastLo
     }
 
     @Override
-    protected void assertHasState(State state) {
+    protected void assertHasState(DaemonState state) {
         assert logFileProbe.currentState == state
         assert registryProbe.currentState == state
     }

@@ -21,6 +21,7 @@ import org.gradle.internal.concurrent.CompositeStoppable;
 import org.gradle.internal.concurrent.ExecutorFactory;
 import org.gradle.internal.concurrent.Stoppable;
 import org.gradle.internal.remote.Address;
+import org.gradle.launcher.daemon.common.DaemonState;
 import org.gradle.launcher.daemon.context.DaemonContext;
 import org.gradle.launcher.daemon.logging.DaemonMessages;
 import org.gradle.launcher.daemon.registry.DaemonRegistry;
@@ -110,7 +111,8 @@ public class Daemon implements Stoppable {
             Runtime.getRuntime().addShutdownHook(new Thread() {
                 public void run() {
                     try {
-                        daemonRegistry.remove(connectorAddress);
+                        daemonRegistry.markState(connectorAddress, DaemonState.Stopped);
+//                        daemonRegistry.remove(connectorAddress);
                     } catch (Exception e) {
                         LOGGER.debug("VM shutdown hook was unable to remove the daemon address from the registry. It will be cleaned up later.", e);
                     }
@@ -128,6 +130,13 @@ public class Daemon implements Stoppable {
                     registryUpdater.onCompleteActivity();
                 }
             };
+
+            // TODO(ew)
+//            Runnable onStopCommand = new Runnable() {
+//                public void run() {
+//                    registryUpdater.onStop();
+//                }
+//            };
 
             // Start the pipeline in reverse order:
             // 1. mark daemon as running
@@ -181,9 +190,8 @@ public class Daemon implements Stoppable {
 
             // Stop the pipeline:
             // 1. mark daemon as stopped, so that any incoming requests will be rejected with 'daemon unavailable'
-            // 2. remove presence from registry
-            // 3. stop accepting new connections
-            // 4. wait for commands in progress to finish (except for abandoned long running commands, like running a build)
+            // 2. stop accepting new connections
+            // 3. wait for commands in progress to finish (except for abandoned long running commands, like running a build)
 
             CompositeStoppable.stoppable(stateCoordinator, registryUpdater, connector, connectionHandler).stop();
         } finally {
@@ -243,6 +251,9 @@ public class Daemon implements Stoppable {
             if (expirationCheck.isExpired()) {
                 LOGGER.info("Daemon expiration criteria met, requesting stop");
                 LOGGER.lifecycle("Daemon stopping because " + expirationCheck.getReason());
+                // FIXME(ew): This must be run twice to stop daemon in --continuous mode because daemon isBusy() because currentCommandExecution != null
+                // Users can still make (at least some types) changes and have the build run in --continuous mode even if the registry is gone
+
                 daemon.getStateCoordinator().requestStop();
             }
         }

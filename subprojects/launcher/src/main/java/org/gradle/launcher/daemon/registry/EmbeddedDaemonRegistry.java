@@ -18,6 +18,7 @@ package org.gradle.launcher.daemon.registry;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.specs.Specs;
 import org.gradle.internal.remote.Address;
+import org.gradle.launcher.daemon.common.DaemonState;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,16 +44,30 @@ public class EmbeddedDaemonRegistry implements DaemonRegistry {
     };
 
     @SuppressWarnings("unchecked")
-    private final Spec<DaemonInfo> idleSpec = Specs.<DaemonInfo>intersect(allSpec, new Spec<DaemonInfo>() {
+    private final Spec<DaemonInfo> availableSpec = Specs.<DaemonInfo>intersect(allSpec, new Spec<DaemonInfo>() {
         public boolean isSatisfiedBy(DaemonInfo daemonInfo) {
-            return daemonInfo.isIdle();
+            return daemonInfo.getState() == DaemonState.Idle;
         }
     });
 
     @SuppressWarnings("unchecked")
-    private final Spec<DaemonInfo> busySpec = Specs.<DaemonInfo>intersect(allSpec, new Spec<DaemonInfo>() {
+    private final Spec<DaemonInfo> unavailableSpec = Specs.<DaemonInfo>intersect(allSpec, new Spec<DaemonInfo>() {
         public boolean isSatisfiedBy(DaemonInfo daemonInfo) {
-            return !daemonInfo.isIdle();
+            return daemonInfo.getState() != DaemonState.Idle;
+        }
+    });
+
+    @SuppressWarnings("unchecked")
+    private final Spec<DaemonInfo> startedSpec = Specs.<DaemonInfo>intersect(allSpec, new Spec<DaemonInfo>() {
+        public boolean isSatisfiedBy(DaemonInfo daemonInfo) {
+            return daemonInfo.getState() == DaemonState.Started;
+        }
+    });
+
+    @SuppressWarnings("unchecked")
+    private final Spec<DaemonInfo> stoppedSpec = Specs.<DaemonInfo>intersect(allSpec, new Spec<DaemonInfo>() {
+        public boolean isSatisfiedBy(DaemonInfo daemonInfo) {
+            return daemonInfo.getState() == DaemonState.Stopped;
         }
     });
 
@@ -60,12 +75,23 @@ public class EmbeddedDaemonRegistry implements DaemonRegistry {
         return daemonInfosOfEntriesMatching(allSpec);
     }
 
-    public List<DaemonInfo> getIdle() {
-        return daemonInfosOfEntriesMatching(idleSpec);
+    @Override
+    public List<DaemonInfo> getStarted() {
+        return daemonInfosOfEntriesMatching(startedSpec);
     }
 
+    public List<DaemonInfo> getIdle() {
+        return daemonInfosOfEntriesMatching(availableSpec);
+    }
+
+    // FIXME(ew): Fix semantic mismatch of "busy" and "unavailable" here
     public List<DaemonInfo> getBusy() {
-        return daemonInfosOfEntriesMatching(busySpec);
+        return daemonInfosOfEntriesMatching(unavailableSpec);
+    }
+
+    @Override
+    public List<DaemonInfo> getStopped() {
+        return daemonInfosOfEntriesMatching(stoppedSpec);
     }
 
     public void store(DaemonInfo info) {
@@ -76,15 +102,10 @@ public class EmbeddedDaemonRegistry implements DaemonRegistry {
         daemonInfos.remove(address);
     }
 
-    public void markBusy(Address address) {
+    @Override
+    public void markState(Address address, DaemonState state) {
         synchronized (daemonInfos) {
-            daemonInfos.get(address).setIdle(false);
-        }
-    }
-
-    public void markIdle(Address address) {
-        synchronized (daemonInfos) {
-            daemonInfos.get(address).setIdle(true);
+            daemonInfos.get(address).setState(state);
         }
     }
 

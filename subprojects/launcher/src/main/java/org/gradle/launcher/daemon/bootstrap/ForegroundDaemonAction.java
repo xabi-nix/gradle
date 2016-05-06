@@ -27,6 +27,7 @@ import org.gradle.launcher.daemon.server.DaemonExpirationStrategy;
 import org.gradle.launcher.daemon.server.DaemonIdleTimeoutExpirationStrategy;
 import org.gradle.launcher.daemon.server.DaemonRegistryUnavailableExpirationStrategy;
 import org.gradle.launcher.daemon.server.DaemonServices;
+import org.gradle.launcher.daemon.common.DaemonState;
 
 import java.util.concurrent.TimeUnit;
 
@@ -50,7 +51,7 @@ public class ForegroundDaemonAction implements Runnable {
         daemon.start();
 
         try {
-            daemonServices.get(DaemonRegistry.class).markIdle(daemon.getAddress());
+            daemonServices.get(DaemonRegistry.class).markState(daemon.getAddress(), DaemonState.Idle);
             daemon.stopOnExpiration(initializeExpirationStrategy(configuration), configuration.getPeriodicCheckIntervalMs());
         } finally {
             daemon.stop();

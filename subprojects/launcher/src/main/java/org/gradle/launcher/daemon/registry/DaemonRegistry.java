@@ -18,6 +18,7 @@ package org.gradle.launcher.daemon.registry;
 
 import net.jcip.annotations.ThreadSafe;
 import org.gradle.internal.remote.Address;
+import org.gradle.launcher.daemon.common.DaemonState;
 
 import java.util.List;
 
@@ -30,13 +31,14 @@ import java.util.List;
 public interface DaemonRegistry {
 
     List<DaemonInfo> getAll();
+    List<DaemonInfo> getStarted();
     List<DaemonInfo> getIdle();
     List<DaemonInfo> getBusy();
+    List<DaemonInfo> getStopped();
 
     void store(DaemonInfo info);
     void remove(Address address);
-    void markBusy(Address address);
-    void markIdle(Address address);
+    void markState(Address address, DaemonState state);
 
     static class EmptyRegistryException extends RuntimeException {
         public EmptyRegistryException(String message) {

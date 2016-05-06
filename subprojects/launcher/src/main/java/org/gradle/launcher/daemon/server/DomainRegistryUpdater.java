@@ -19,6 +19,7 @@ package org.gradle.launcher.daemon.server;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 import org.gradle.internal.concurrent.Stoppable;
+import org.gradle.launcher.daemon.common.DaemonState;
 import org.gradle.launcher.daemon.context.DaemonContext;
 import org.gradle.launcher.daemon.logging.DaemonMessages;
 import org.gradle.launcher.daemon.registry.DaemonInfo;
@@ -43,7 +44,7 @@ class DomainRegistryUpdater implements Stoppable {
     public void onStartActivity() {
         LOGGER.info("Marking the daemon as busy, address: {}", connectorAddress);
         try {
-            daemonRegistry.markBusy(connectorAddress);
+            daemonRegistry.markState(connectorAddress, DaemonState.Busy);
         } catch (DaemonRegistry.EmptyRegistryException e) {
             LOGGER.warn("Cannot mark daemon as busy because the registry is empty.");
         }
@@ -52,7 +53,7 @@ class DomainRegistryUpdater implements Stoppable {
     public void onCompleteActivity() {
         LOGGER.info("Marking the daemon as idle, address: {}", connectorAddress);
         try {
-            daemonRegistry.markIdle(connectorAddress);
+            daemonRegistry.markState(connectorAddress, DaemonState.Idle);
         } catch (DaemonRegistry.EmptyRegistryException e) {
             LOGGER.warn("Cannot mark daemon as idle because the registry is empty.");
         }
@@ -62,13 +63,15 @@ class DomainRegistryUpdater implements Stoppable {
         LOGGER.info("{}{}", DaemonMessages.ADVERTISING_DAEMON, connectorAddress);
         LOGGER.debug("Advertised daemon context: {}", daemonContext);
         this.connectorAddress = connectorAddress;
-        daemonRegistry.store(new DaemonInfo(connectorAddress, daemonContext, password, false));
+        // FIXME(ew): Duplication DaemonStateCoordinator line 52
+        daemonRegistry.store(new DaemonInfo(connectorAddress, daemonContext, password, DaemonState.Started));
     }
 
     public void stop() {
+        LOGGER.info("Marking the daemon as stopped, address: {}", connectorAddress);
         LOGGER.debug("Removing our presence to clients, eg. removing this address from the registry: {}", connectorAddress);
         try {
-            daemonRegistry.remove(connectorAddress);
+            daemonRegistry.markState(connectorAddress, DaemonState.Stopped);
         } catch (DaemonRegistry.EmptyRegistryException e) {
             LOGGER.warn("Cannot remove daemon from the registry because the registry is empty.");
         }

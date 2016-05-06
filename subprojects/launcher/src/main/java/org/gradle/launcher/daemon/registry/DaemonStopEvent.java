@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 the original author or authors.
+ * Copyright 2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,21 @@
  * limitations under the License.
  */
 
-package org.gradle.integtests.fixtures.daemon;
+package org.gradle.launcher.daemon.registry;
 
-import org.gradle.launcher.daemon.common.DaemonState;
+import java.io.Serializable;
+import java.util.Date;
 
-public interface DaemonStateProbe {
-    DaemonState getCurrentState();
+public class DaemonStopEvent implements Serializable {
+    private final Date timestamp;
+    private final String reason;
+
+    public DaemonStopEvent(Date timestamp, String reason) {
+        this.timestamp = timestamp;
+        this.reason = reason;
+    }
+
+    public String getReason() {
+        return reason;
+    }
 }

@@ -18,6 +18,7 @@ package org.gradle.integtests.fixtures.daemon
 
 import org.gradle.api.internal.file.TestFiles
 import org.gradle.internal.os.OperatingSystem
+import org.gradle.launcher.daemon.common.DaemonState
 import org.gradle.launcher.daemon.context.DaemonContext
 import org.gradle.process.internal.streams.SafeStreams
 
@@ -47,31 +48,31 @@ abstract class AbstractDaemonFixture implements DaemonFixture {
     }
 
     void becomesIdle() {
-        waitForState(State.idle)
+        waitForState(DaemonState.Idle)
     }
 
     void stops() {
-        waitForState(State.stopped)
+        waitForState(DaemonState.Stopped)
     }
 
     @Override
     void assertIdle() {
-        assertHasState(State.idle)
+        assertHasState(DaemonState.Idle)
     }
 
     @Override
     void assertBusy() {
-        assertHasState(State.busy)
+        assertHasState(DaemonState.Busy)
     }
 
     @Override
     void assertStopped() {
-        assertHasState(State.stopped)
+        assertHasState(DaemonState.Stopped)
     }
 
-    protected abstract void waitForState(State state)
+    protected abstract void waitForState(DaemonState state)
 
-    protected abstract void assertHasState(State state)
+    protected abstract void assertHasState(DaemonState state)
 
     /**
      * Forcefully kills this daemon.
@@ -132,10 +133,5 @@ killtree() {
         } else {
             throw new IllegalStateException()
         }
-    }
-
-    @SuppressWarnings("FieldName")
-    enum State {
-        busy, idle, stopped
     }
 }
