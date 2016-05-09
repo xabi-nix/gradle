@@ -47,8 +47,8 @@ import java.util.concurrent.Callable;
 import static org.gradle.api.tasks.FilePathMode.ABSOLUTE;
 import static org.gradle.util.GUtil.uncheckedCall;
 
-public class DefaultTaskInputs implements TaskInputs {
     private static final Predicate<TaskPropertyInput> SKIP_WHEN_EMPTY_ENTRIES = new Predicate<TaskPropertyInput>() {
+public class DefaultTaskInputs implements TaskInputsInternal {
         @Override
         public boolean apply(TaskPropertyInput input) {
             return input.isSkipWhenEmpty();

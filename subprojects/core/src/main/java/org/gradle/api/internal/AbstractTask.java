@@ -49,7 +49,6 @@ import org.gradle.api.plugins.ExtensionContainer;
 import org.gradle.api.specs.AndSpec;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.TaskDependency;
-import org.gradle.api.tasks.TaskInputs;
 import org.gradle.api.tasks.TaskInstantiationException;
 import org.gradle.internal.Factory;
 import org.gradle.internal.logging.compatbridge.LoggingManagerInternalCompatibilityBridge;
@@ -121,7 +120,7 @@ public abstract class AbstractTask implements TaskInternal, DynamicObjectAware {
     // toString() of AbstractTask is called a lot, so precompute.
     private final String toStringValue;
 
-    private final TaskInputs taskInputs;
+    private final TaskInputsInternal taskInputs;
     private final TaskOutputsInternal taskOutputs;
     private final Class<? extends Task> publicType;
     private LoggingManagerInternal loggingManager;
@@ -457,7 +456,7 @@ public abstract class AbstractTask implements TaskInternal, DynamicObjectAware {
         this.group = group;
     }
 
-    public TaskInputs getInputs() {
+    public TaskInputsInternal getInputs() {
         return taskInputs;
     }
 
