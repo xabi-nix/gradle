@@ -78,6 +78,11 @@ public class CacheKeyBuilder {
         return this;
     }
 
+    public CacheKeyBuilder put(byte[] value) {
+        hasher.putBytes(value);
+        return this;
+    }
+
     private void putInternal(Object value) throws IOException {
         LOGGER.debug("Digesting {} for cache key", value);
         if (value == null) {
@@ -127,7 +132,12 @@ public class CacheKeyBuilder {
     }
 
     public HashCode build() {
-        return hasher.hash();
+        try {
+            hasherStream.flush();
+            return hasher.hash();
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
     private void putCollection(Collection<?> collection) {
