@@ -35,7 +35,8 @@ import java.util.Collections;
 import java.util.Map;
 
 public class DefaultTaskOutputs implements TaskOutputsInternal {
-    private static final String DEFAULT_PROPERTY = "$default";
+    private static final String DEFAULT_PROPERTY_PREFIX = "$default$";
+    private int defaultPropertyCount;
 
     private final Map<String, TaskPropertyOutput> propertyOutputs = Maps.newTreeMap();
     private AndSpec<TaskInternal> upToDateSpec = new AndSpec<TaskInternal>();
@@ -151,7 +152,7 @@ public class DefaultTaskOutputs implements TaskOutputsInternal {
         taskMutator.mutate("TaskOutputs.files(Object...)", new Runnable() {
             @Override
             public void run() {
-                addMultiplePropertyOutput(DEFAULT_PROPERTY, paths);
+                addMultiplePropertyOutput(DEFAULT_PROPERTY_PREFIX + defaultPropertyCount++, paths);
             }
         });
         return this;
@@ -173,7 +174,7 @@ public class DefaultTaskOutputs implements TaskOutputsInternal {
         taskMutator.mutate("TaskOutputs.file(Object)", new Runnable() {
             @Override
             public void run() {
-                addMultiplePropertyOutput(DEFAULT_PROPERTY, path);
+                addMultiplePropertyOutput(DEFAULT_PROPERTY_PREFIX + defaultPropertyCount++, path);
             }
         });
         return this;
@@ -195,7 +196,7 @@ public class DefaultTaskOutputs implements TaskOutputsInternal {
         taskMutator.mutate("TaskOutputs.dir(Object)", new Runnable() {
             @Override
             public void run() {
-                addMultiplePropertyOutput(DEFAULT_PROPERTY, path);
+                addMultiplePropertyOutput(DEFAULT_PROPERTY_PREFIX + defaultPropertyCount++, path);
             }
         });
         return this;
