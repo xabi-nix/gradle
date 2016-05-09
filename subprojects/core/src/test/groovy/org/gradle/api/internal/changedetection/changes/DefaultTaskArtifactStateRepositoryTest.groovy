@@ -78,9 +78,9 @@ public class DefaultTaskArtifactStateRepositoryTest extends Specification {
         treeVisitor = new CachingTreeVisitor()
         def treeSnapshotRepository = new TreeSnapshotRepository(cacheAccess, stringInterner)
         FileCollectionSnapshotter inputFilesSnapshotter = new DefaultFileCollectionSnapshotter(snapshotter, cacheAccess, stringInterner, TestFiles.resolver(), treeVisitor, treeSnapshotRepository)
-        FileCollectionSnapshotter discoveredFilesSnapshotter = new MinimalFileSetSnapshotter(snapshotter, cacheAccess, stringInterner, TestFiles.resolver(), TestFiles.fileSystem())
+        FileCollectionSnapshotter discoveredFilesSnapshotter = new MinimalFileSetSnapshotter(snapshotter, cacheAccess, stringInterner, TestFiles.resolver(),  TestFiles.fileSystem())
         FileCollectionSnapshotter outputFilesSnapshotter = new OutputFilesCollectionSnapshotter(inputFilesSnapshotter, stringInterner)
-        SerializerRegistry<FileCollectionSnapshot> serializerRegistry = new DefaultSerializerRegistry<FileCollectionSnapshot>();
+        SerializerRegistry serializerRegistry = new DefaultSerializerRegistry();
         inputFilesSnapshotter.registerSerializers(serializerRegistry);
         outputFilesSnapshotter.registerSerializers(serializerRegistry);
         discoveredFilesSnapshotter.registerSerializers(serializerRegistry);
@@ -696,7 +696,7 @@ public class DefaultTaskArtifactStateRepositoryTest extends Specification {
             if (outputs != null) {
                 task.getOutputs().files(outputs)
             }
-            task.doLast(new org.gradle.api.Action<Object>() {
+            task.doLast(new Action<Object>() {
                 public void execute(Object o) {
                     for (TestFile file : create) {
                         file.createFile()
