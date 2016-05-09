@@ -15,7 +15,9 @@
  */
 package org.gradle.testfixtures;
 
+import com.google.common.hash.HashCode;
 import org.gradle.api.Project;
+import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.testfixtures.internal.ProjectBuilderImpl;
 
 import java.io.File;
@@ -93,9 +95,13 @@ public class ProjectBuilder {
      * @return The project
      */
     public Project build() {
+        ProjectInternal project;
         if (parent != null) {
-            return impl.createChildProject(name, parent, projectDir);
+            project = (ProjectInternal) impl.createChildProject(name, parent, projectDir);
+        } else {
+            project = (ProjectInternal) impl.createProject(name, projectDir);
         }
-        return impl.createProject(name, projectDir);
+        project.setClasspathHash(HashCode.fromString("1234abcdef"));
+        return project;
     }
 }

@@ -15,6 +15,7 @@
  */
 package org.gradle.api.internal.changedetection.state;
 
+import com.google.common.hash.HashCode;
 import org.gradle.api.internal.TaskInternal;
 import org.gradle.api.internal.cache.StringInterner;
 import org.gradle.cache.PersistentIndexedCache;
@@ -323,6 +324,7 @@ public class CacheBackedTaskHistoryRepository implements TaskHistoryRepository {
                 execution.setOutputFilesHash(decoder.readInt());
                 execution.discoveredFilesSnapshotId = decoder.readLong();
                 execution.setTaskClass(decoder.readString());
+                execution.setTaskClassLoaderHash(HashCode.fromBytes(decoder.readBinary()));
                 int outputFiles = decoder.readInt();
                 Set<String> files = new HashSet<String>();
                 for (int j = 0; j < outputFiles; j++) {
@@ -347,6 +349,7 @@ public class CacheBackedTaskHistoryRepository implements TaskHistoryRepository {
                 encoder.writeInt(execution.getOutputFilesHash());
                 encoder.writeLong(execution.discoveredFilesSnapshotId);
                 encoder.writeString(execution.getTaskClass());
+                encoder.writeBinary(execution.getTaskClassLoaderHash().asBytes());
                 encoder.writeInt(execution.getOutputFiles().size());
                 for (String outputFile : execution.getOutputFiles()) {
                     encoder.writeString(outputFile);

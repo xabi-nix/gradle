@@ -42,7 +42,7 @@ public class TaskUpToDateState {
         TaskExecution lastExecution = history.getPreviousExecution();
 
         TaskStateChanges noHistoryState = new NoHistoryTaskStateChanges(lastExecution);
-        TaskStateChanges taskTypeState = new TaskTypeTaskStateChanges(lastExecution, thisExecution, task);
+        TaskStateChanges taskTypeState = new ClasspathTaskStateChanges(lastExecution, thisExecution, task);
         TaskStateChanges inputPropertiesState = new InputPropertiesTaskStateChanges(lastExecution, thisExecution, task);
 
         // Capture outputs state

@@ -15,6 +15,8 @@
  */
 package org.gradle.api.internal.changedetection.state;
 
+import com.google.common.hash.HashCode;
+
 import java.util.Map;
 import java.util.Set;
 
@@ -23,6 +25,7 @@ import java.util.Set;
  */
 public abstract class TaskExecution {
     private String taskClass;
+    private HashCode taskClassLoaderHash;
     private Map<String, Object> inputProperties;
     private Set<String> outputFiles;
     private Integer outputFilesHash;
@@ -42,6 +45,14 @@ public abstract class TaskExecution {
 
     public void setTaskClass(String taskClass) {
         this.taskClass = taskClass;
+    }
+
+    public HashCode getTaskClassLoaderHash() {
+        return taskClassLoaderHash;
+    }
+
+    public void setTaskClassLoaderHash(HashCode taskClassLoaderHash) {
+        this.taskClassLoaderHash = taskClassLoaderHash;
     }
 
     public Map<String, Object> getInputProperties() {

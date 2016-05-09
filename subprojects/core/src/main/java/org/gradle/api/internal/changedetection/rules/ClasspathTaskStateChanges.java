@@ -16,30 +16,34 @@
 
 package org.gradle.api.internal.changedetection.rules;
 
-import org.apache.commons.lang.StringUtils;
 import org.gradle.api.internal.TaskInternal;
 import org.gradle.api.internal.changedetection.state.TaskExecution;
+import org.gradle.api.internal.project.ProjectInternal;
 
 import java.util.List;
 
-class TaskTypeTaskStateChanges extends SimpleTaskStateChanges {
-    private final String taskClass;
+class ClasspathTaskStateChanges extends SimpleTaskStateChanges {
     private final TaskExecution previousExecution;
+    private final TaskExecution currentExecution;
     private final TaskInternal task;
 
-    public TaskTypeTaskStateChanges(TaskExecution previousExecution, TaskExecution currentExecution, TaskInternal task) {
-        final String taskClass = task.getClass().getName();
-        currentExecution.setTaskClass(taskClass);
-        this.taskClass = taskClass;
+    public ClasspathTaskStateChanges(TaskExecution previousExecution, TaskExecution currentExecution, TaskInternal task) {
+        currentExecution.setTaskClass(task.getClass().getName());
+        currentExecution.setTaskClassLoaderHash(((ProjectInternal) task.getProject()).getClasspathHash());
+        this.currentExecution = currentExecution;
         this.previousExecution = previousExecution;
         this.task = task;
     }
 
     @Override
     protected void addAllChanges(List<TaskStateChange> changes) {
-        if (!taskClass.equals(previousExecution.getTaskClass())) {
-            changes.add(new DescriptiveChange("%s has changed type from '%s' to '%s'.",
-                    StringUtils.capitalize(task.toString()), previousExecution.getTaskClass(), task.getClass().getName()));
+        if (!currentExecution.getTaskClass().equals(previousExecution.getTaskClass())) {
+            changes.add(new DescriptiveChange("Task '%s' has changed type from '%s' to '%s'.",
+                task.getPath(), previousExecution.getTaskClass(), task.getClass().getName()));
+        }
+        if (!currentExecution.getTaskClassLoaderHash().equals(previousExecution.getTaskClassLoaderHash())) {
+            changes.add(new DescriptiveChange("Classpath of task '%s' has changed.",
+                task.getPath(), previousExecution.getTaskClass()));
         }
     }
 }
