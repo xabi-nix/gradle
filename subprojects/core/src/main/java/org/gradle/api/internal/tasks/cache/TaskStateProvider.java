@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package org.gradle.api.internal.changedetection.taskcache;
+package org.gradle.api.internal.tasks.cache;
 
-import com.google.common.hash.HashCode;
 import org.gradle.api.internal.TaskInternal;
 
-public interface TaskInputHasher {
-    HashCode createHash(TaskInternal task);
+public interface TaskStateProvider {
+    FileBasedTaskState getTaskState(TaskInternal task);
 }

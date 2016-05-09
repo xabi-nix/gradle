@@ -18,12 +18,13 @@ package org.gradle.internal.service.scopes
 import org.gradle.StartParameter
 import org.gradle.api.internal.cache.StringInterner
 import org.gradle.api.internal.changedetection.state.InMemoryTaskArtifactCache
-import org.gradle.api.internal.changedetection.taskcache.TaskInputHasher
-import org.gradle.api.internal.changedetection.taskcache.TaskResultCache
 import org.gradle.api.internal.changedetection.taskcache.TaskOutputPacker
+import org.gradle.api.internal.changedetection.taskcache.TaskResultCache
 import org.gradle.api.internal.file.FileCollectionFactory
 import org.gradle.api.internal.file.FileResolver
 import org.gradle.api.internal.tasks.TaskExecuter
+import org.gradle.api.internal.tasks.cache.FileStateProvider
+import org.gradle.api.internal.tasks.cache.TaskStateProvider
 import org.gradle.api.internal.tasks.execution.ExecuteAtMostOnceTaskExecuter
 import org.gradle.api.invocation.Gradle
 import org.gradle.cache.CacheBuilder
@@ -64,7 +65,8 @@ class TaskExecutionServicesTest extends Specification {
         _ * parent.get(StringInterner) >> new StringInterner()
         _ * parent.get(TaskResultCache) >> Mock(TaskResultCache)
         _ * parent.get(TaskOutputPacker) >> Mock(TaskOutputPacker)
-        _ * parent.get(TaskInputHasher) >> Mock(TaskInputHasher)
+        _ * parent.get(FileStateProvider) >> Mock(FileStateProvider)
+        _ * parent.get(TaskStateProvider) >> Mock(TaskStateProvider)
         _ * startParameter.getSystemPropertiesArgs() >> Collections.emptyMap()
         _ * cacheRepository.cache(gradle, 'taskArtifacts') >> cacheBuilder
         _ * cacheBuilder.withDisplayName(!null) >> cacheBuilder

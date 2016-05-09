@@ -18,13 +18,17 @@ package org.gradle.api.internal.tasks.execution
 
 import com.google.common.hash.HashCode
 import org.gradle.api.Project
-import org.gradle.api.file.FileCollection
 import org.gradle.api.internal.TaskInternal
 import org.gradle.api.internal.TaskOutputsInternal
-import org.gradle.api.internal.changedetection.taskcache.*
+import org.gradle.api.internal.changedetection.taskcache.TaskOutputPacker
+import org.gradle.api.internal.changedetection.taskcache.TaskOutputReader
+import org.gradle.api.internal.changedetection.taskcache.TaskOutputWriter
+import org.gradle.api.internal.changedetection.taskcache.TaskResultCache
 import org.gradle.api.internal.tasks.TaskExecuter
 import org.gradle.api.internal.tasks.TaskExecutionContext
 import org.gradle.api.internal.tasks.TaskStateInternal
+import org.gradle.api.internal.tasks.cache.FileBasedTaskState
+import org.gradle.api.internal.tasks.cache.TaskStateProvider
 import spock.lang.Specification
 
 public class SkipCachedTaskExecuterTest extends Specification {
@@ -33,15 +37,15 @@ public class SkipCachedTaskExecuterTest extends Specification {
     def project = Mock(Project)
     def projectDir = Mock(File)
     def outputs = Mock(TaskOutputsInternal)
-    def outputFiles = Mock(FileCollection)
     def taskState = Mock(TaskStateInternal)
     def taskContext = Mock(TaskExecutionContext)
     def taskResultCache = Mock(TaskResultCache)
     def taskResultPacker = Mock(TaskOutputPacker)
-    def taskInputHasher = Mock(TaskInputHasher)
+    def taskStateProvider = Mock(TaskStateProvider)
+    def taskCachingState = Mock(FileBasedTaskState)
     def cacheKey = Mock(HashCode)
 
-    def executer = new SkipCachedTaskExecuter(taskResultCache, taskResultPacker, taskInputHasher, delegate)
+    def executer = new SkipCachedTaskExecuter(taskResultCache, taskResultPacker, taskStateProvider, delegate)
 
     def "skip task when cached results exist"() {
         def cachedResult = Mock(TaskOutputReader)
@@ -54,7 +58,8 @@ public class SkipCachedTaskExecuterTest extends Specification {
         1 * outputs.isCacheEnabled() >> true
         1 * outputs.isCacheAllowed() >> true
 
-        1 * taskInputHasher.createHash(task) >> cacheKey
+        1 * taskStateProvider.getTaskState(task) >> taskCachingState
+        1 * taskCachingState.getTaskCacheKey() >> cacheKey
         1 * taskResultCache.get(cacheKey) >> cachedResult
         1 * taskResultPacker.unpack(outputs, cachedResult)
         1 * taskState.upToDate("CACHED")
@@ -72,7 +77,8 @@ public class SkipCachedTaskExecuterTest extends Specification {
         1 * outputs.isCacheEnabled() >> true
         1 * outputs.isCacheAllowed() >> true
 
-        1 * taskInputHasher.createHash(task) >> cacheKey
+        1 * taskStateProvider.getTaskState(task) >> taskCachingState
+        1 * taskCachingState.getTaskCacheKey() >> cacheKey
         1 * taskResultCache.get(cacheKey) >> null
 
         then:
@@ -94,7 +100,8 @@ public class SkipCachedTaskExecuterTest extends Specification {
         1 * outputs.isCacheEnabled() >> true
         1 * outputs.isCacheAllowed() >> true
 
-        1 * taskInputHasher.createHash(task) >> cacheKey
+        1 * taskStateProvider.getTaskState(task) >> taskCachingState
+        1 * taskCachingState.getTaskCacheKey() >> cacheKey
         1 * taskResultCache.get(cacheKey) >> null
 
         then:

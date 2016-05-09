@@ -21,11 +21,11 @@ import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
 import org.gradle.api.internal.tasks.TaskOutputVisitor;
 import org.gradle.api.internal.TaskOutputsInternal;
-import org.gradle.api.internal.tasks.TaskPropertyOutput;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -42,8 +42,9 @@ public class ZipTaskOutputPacker implements TaskOutputPacker {
                 OutputStream outputStream = closer.register(output.openBufferedStream());
                 try {
                     final ZipOutputStream zipOutput = new ZipOutputStream(outputStream);
-                    for (TaskPropertyOutput propertyOutput : taskOutputs.getPropertyOutputs()) {
-                        final String property = propertyOutput.getProperty();
+                    for (Map.Entry<String, TaskOutputsInternal.TaskPropertyOutputFiles> entry : taskOutputs.getPropertyFiles().entrySet()) {
+                        final String property = entry.getKey();
+                        TaskOutputsInternal.TaskPropertyOutputFiles propertyOutput = entry.getValue();
                         final String propertyRoot = "property-" + property + "/";
                         zipOutput.putNextEntry(new ZipEntry(propertyRoot));
                         propertyOutput.visitFiles(new TaskOutputVisitor() {
@@ -76,6 +77,7 @@ public class ZipTaskOutputPacker implements TaskOutputPacker {
     public void unpack(TaskOutputsInternal taskOutputs, TaskOutputReader result) throws IOException {
         Closer closer = Closer.create();
         InputStream input = closer.register(result.read().openBufferedStream());
+        Map<String, TaskOutputsInternal.TaskPropertyOutputFiles> propertyOutputs = taskOutputs.getPropertyFiles();
         try {
             ZipInputStream zipInput = new ZipInputStream(input);
             ZipEntry entry;
@@ -87,7 +89,10 @@ public class ZipTaskOutputPacker implements TaskOutputPacker {
                     continue;
                 }
                 String property = matcher.group(1);
-                TaskPropertyOutput output = taskOutputs.getPropertyOutput(property);
+                TaskOutputsInternal.TaskPropertyOutputFiles output = propertyOutputs.get(property);
+                if (output == null) {
+                    throw new IllegalStateException(String.format("No output property '%s' registered", property));
+                }
 
                 String path = matcher.group(2);
                 if (path.isEmpty()) {

@@ -16,12 +16,15 @@
 
 package org.gradle.api.internal;
 
+import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.FileCollection;
-import org.gradle.api.internal.tasks.TaskPropertyOutput;
+import org.gradle.api.internal.tasks.TaskOutputVisitor;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.TaskOutputs;
 
+import java.io.IOException;
 import java.util.Collection;
+import java.util.Map;
 
 public interface TaskOutputsInternal extends TaskOutputs {
     Spec<? super TaskInternal> getUpToDateSpec();
@@ -40,7 +43,13 @@ public interface TaskOutputsInternal extends TaskOutputs {
 
     void setHistory(TaskExecutionHistory history);
 
-    Collection<TaskPropertyOutput> getPropertyOutputs();
+    Map<String, TaskPropertyOutputFiles> getPropertyFiles();
 
-    TaskPropertyOutput getPropertyOutput(String propertyName);
+    interface TaskPropertyOutputFiles {
+        void visitFiles(TaskOutputVisitor visitor) throws IOException;
+
+        TaskOutputVisitor getVisitor();
+
+        Collection<Object> getPaths();
+    }
 }

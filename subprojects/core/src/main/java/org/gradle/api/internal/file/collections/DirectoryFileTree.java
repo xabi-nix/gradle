@@ -19,6 +19,7 @@ package org.gradle.api.internal.file.collections;
 import org.gradle.api.file.*;
 import org.gradle.api.internal.file.DefaultFileVisitDetails;
 import org.gradle.api.internal.file.FileSystemSubset;
+import org.gradle.api.internal.file.FileVisitorWithMissingFiles;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 import org.gradle.api.specs.Spec;
@@ -129,6 +130,8 @@ public class DirectoryFileTree implements MinimalFileTree, PatternFilterableFile
             } else {
                 walkDir(fileOrDirectory, path, visitor, spec, stopFlag);
             }
+        } else if (visitor instanceof FileVisitorWithMissingFiles) {
+            processSingleMissingFile(fileOrDirectory, (FileVisitorWithMissingFiles) visitor, spec, stopFlag);
         } else {
             LOGGER.info("file or directory '{}', not found", fileOrDirectory);
         }
@@ -139,6 +142,14 @@ public class DirectoryFileTree implements MinimalFileTree, PatternFilterableFile
         FileVisitDetails details = new DefaultFileVisitDetails(file, path, stopFlag, fileSystem, fileSystem, false);
         if (isAllowed(details, spec)) {
             visitor.visitFile(details);
+        }
+    }
+
+    private void processSingleMissingFile(File file, FileVisitorWithMissingFiles visitor, Spec<FileTreeElement> spec, AtomicBoolean stopFlag) {
+        RelativePath path = new RelativePath(true, file.getName());
+        FileVisitDetails details = new DefaultFileVisitDetails(file, path, stopFlag, fileSystem, fileSystem, false, -1L, -1L);
+        if (isAllowed(details, spec)) {
+            visitor.visitMissingFile(details);
         }
     }
 

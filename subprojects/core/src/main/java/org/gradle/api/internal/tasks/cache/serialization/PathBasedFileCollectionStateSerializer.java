@@ -14,18 +14,21 @@
  * limitations under the License.
  */
 
-package org.gradle.api.internal.tasks;
+package org.gradle.api.internal.tasks.cache.serialization;
 
-import org.gradle.api.file.ConfigurableFileCollection;
+import org.gradle.api.internal.tasks.cache.PathBasedFileCollectionState;
+import org.gradle.internal.serialize.Decoder;
+import org.gradle.internal.serialize.Encoder;
+import org.gradle.internal.serialize.Serializer;
 
-import java.io.IOException;
+public class PathBasedFileCollectionStateSerializer implements Serializer<PathBasedFileCollectionState> {
+    @Override
+    public PathBasedFileCollectionState read(Decoder decoder) throws Exception {
+        return null;
+    }
 
-public interface TaskPropertyOutput {
-    String getProperty();
+    @Override
+    public void write(Encoder encoder, PathBasedFileCollectionState value) throws Exception {
 
-    void visitFiles(TaskOutputVisitor visitor) throws IOException;
-
-    TaskOutputVisitor getVisitor();
-
-    void collectFiles(ConfigurableFileCollection files);
+    }
 }

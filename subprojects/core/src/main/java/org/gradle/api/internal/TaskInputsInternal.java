@@ -26,4 +26,17 @@ import org.gradle.api.tasks.TaskInputs;
 import java.util.Map;
 
 public interface TaskInputsInternal extends TaskInputs {
+    Map<String, TaskPropertyInputFiles> getPropertyFiles();
+
+    interface TaskPropertyInputFiles {
+        FileOrderMode getOrderMode();
+
+        FilePathMode getPathMode();
+
+        FileContentsMode getContentsMode();
+
+        boolean isSkipWhenEmpty();
+
+        FileCollection resolve(FileResolver resolver);
+    }
 }

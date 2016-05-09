@@ -19,11 +19,17 @@ package org.gradle.api.internal.tasks.execution;
 import com.google.common.hash.HashCode;
 import org.gradle.api.GradleException;
 import org.gradle.api.internal.TaskInternal;
-import org.gradle.api.internal.changedetection.taskcache.*;
+import org.gradle.api.internal.TaskOutputsInternal;
+import org.gradle.api.internal.changedetection.taskcache.CacheKeyException;
+import org.gradle.api.internal.changedetection.taskcache.TaskOutputPacker;
+import org.gradle.api.internal.changedetection.taskcache.TaskOutputReader;
+import org.gradle.api.internal.changedetection.taskcache.TaskOutputWriter;
+import org.gradle.api.internal.changedetection.taskcache.TaskResultCache;
 import org.gradle.api.internal.tasks.TaskExecuter;
 import org.gradle.api.internal.tasks.TaskExecutionContext;
-import org.gradle.api.internal.TaskOutputsInternal;
 import org.gradle.api.internal.tasks.TaskStateInternal;
+import org.gradle.api.internal.tasks.cache.FileBasedTaskState;
+import org.gradle.api.internal.tasks.cache.TaskStateProvider;
 import org.gradle.util.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,13 +41,13 @@ public class SkipCachedTaskExecuter implements TaskExecuter {
 
     private final TaskResultCache taskResultCache;
     private final TaskOutputPacker taskOutputPacker;
-    private final TaskInputHasher taskInputHasher;
+    private final TaskStateProvider taskStateProvider;
     private final TaskExecuter delegate;
 
-    public SkipCachedTaskExecuter(TaskResultCache taskResultCache, TaskOutputPacker taskOutputPacker, TaskInputHasher taskInputHasher, TaskExecuter delegate) {
+    public SkipCachedTaskExecuter(TaskResultCache taskResultCache, TaskOutputPacker taskOutputPacker, TaskStateProvider taskStateProvider, TaskExecuter delegate) {
         this.taskResultCache = taskResultCache;
         this.taskOutputPacker = taskOutputPacker;
-        this.taskInputHasher = taskInputHasher;
+        this.taskStateProvider = taskStateProvider;
         this.delegate = delegate;
         LOGGER.info("Using {}", taskResultCache.getDescription());
     }
@@ -65,8 +71,9 @@ public class SkipCachedTaskExecuter implements TaskExecuter {
 
         HashCode cacheKey = null;
         if (shouldCache) {
+            FileBasedTaskState taskState = taskStateProvider.getTaskState(task);
             try {
-                cacheKey = taskInputHasher.createHash(task);
+                cacheKey = taskState.getTaskCacheKey();
                 LOGGER.debug("Cache key for {} is {}", task, cacheKey);
             } catch (CacheKeyException e) {
                 LOGGER.info(String.format("Could not build cache key for task %s", task), e);

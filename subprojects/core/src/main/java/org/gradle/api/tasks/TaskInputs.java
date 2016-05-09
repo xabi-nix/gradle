@@ -17,7 +17,6 @@
 package org.gradle.api.tasks;
 
 import org.gradle.api.file.FileCollection;
-import org.gradle.api.internal.changedetection.taskcache.CacheKeyBuilder;
 import org.gradle.internal.HasInternalProtocol;
 
 import java.util.Map;
@@ -83,9 +82,6 @@ public interface TaskInputs {
      * @return The properties.
      */
     Map<String, Object> getProperties();
-
-    // TODO:LPTR Move this to internal interface
-    void appendToCacheKey(CacheKeyBuilder keyBuilder);
 
     /**
      * <p>Registers an input property for this task. This value is persisted when the task executes, and is compared
