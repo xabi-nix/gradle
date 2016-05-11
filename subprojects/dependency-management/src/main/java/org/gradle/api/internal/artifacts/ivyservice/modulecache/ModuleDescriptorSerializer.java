@@ -32,8 +32,10 @@ import org.apache.ivy.core.module.descriptor.License;
 import org.apache.ivy.core.module.descriptor.ModuleDescriptor;
 import org.apache.ivy.core.module.id.ArtifactId;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
+import org.apache.ivy.plugins.namespace.Namespace;
 import org.apache.ivy.plugins.parser.xml.XmlModuleDescriptorParser;
 import org.gradle.api.internal.artifacts.ivyservice.IvyUtil;
+import org.gradle.api.internal.artifacts.ivyservice.NamespaceId;
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.strategy.ResolverStrategy;
 import org.gradle.internal.Cast;
 import org.gradle.internal.UncheckedException;
@@ -145,26 +147,17 @@ public class ModuleDescriptorSerializer implements org.gradle.internal.serialize
 
         private void writeDependency(DependencyDescriptor dep) throws IOException {
             ModuleRevisionId dependencyRevisionId = dep.getDependencyRevisionId();
-            writeString(dependencyRevisionId.getOrganisation());
-            writeString(dependencyRevisionId.getName());
-            writeNullableString(dependencyRevisionId.getBranch());
-            writeString(dependencyRevisionId.getRevision());
-            if (!dep.getDynamicConstraintDependencyRevisionId().equals(dependencyRevisionId)) {
-                if (dep.getDynamicConstraintDependencyRevisionId().getBranch() != null) {
-                    writeNullableString(dep.getDynamicConstraintDependencyRevisionId().getBranch());
-                } else {
-                    writeNullableString(null);
-                }
-                writeNullableString(dep.getDynamicConstraintDependencyRevisionId().getRevision());
-            } else {
-                writeNullableString(null);
-                writeNullableString(null);
+            writeModuleRevisionId(dependencyRevisionId);
+            ModuleRevisionId dynamicConstraintDependencyRevisionId = dep.getDynamicConstraintDependencyRevisionId();
+            boolean hasDynamicRevision = !dynamicConstraintDependencyRevisionId.equals(dependencyRevisionId);
+            writeBoolean(hasDynamicRevision);
+            if (hasDynamicRevision) {
+                writeModuleRevisionId(dynamicConstraintDependencyRevisionId);
             }
+
             writeBoolean(dep.isForce());
             writeBoolean(dep.isChanging());
             writeBoolean(dep.isTransitive());
-
-            writeExtraAttributes(dep.getExtraAttributes());
             writeDependencyConfigurationMapping(dep);
             writeDependencyArtifactDescriptors(dep);
 
@@ -173,6 +166,14 @@ public class ModuleDescriptorSerializer implements org.gradle.internal.serialize
 
             ExcludeRule[] excludes = dep.getAllExcludeRules();
             writeExcludeRules(excludes);
+        }
+
+        private void writeModuleRevisionId(ModuleRevisionId dependencyRevisionId) throws IOException {
+            writeString(dependencyRevisionId.getOrganisation());
+            writeString(dependencyRevisionId.getName());
+            writeNullableString(dependencyRevisionId.getBranch());
+            writeNullableString(dependencyRevisionId.getRevision());
+            writeExtraAttributes(dependencyRevisionId.getExtraAttributes());
         }
 
         private void writeIncludeRules(IncludeRule[] includes) throws IOException {
@@ -302,6 +303,16 @@ public class ModuleDescriptorSerializer implements org.gradle.internal.serialize
             writeString(md.getStatus());
             writeLong(md.getResolvedPublicationDate().getTime());
             writeBoolean(md.isDefault());
+            if (md instanceof DefaultModuleDescriptor) {
+                DefaultModuleDescriptor dmd = (DefaultModuleDescriptor) md;
+                if (dmd.getNamespace() != null && !dmd.getNamespace().getName().equals("system")) {
+                    writeNullableString(dmd.getNamespace().getName());
+                } else {
+                    writeNullableString(null);
+                }
+            } else {
+                writeNullableString(null);
+            }
             writeExtraAttributes(md.getExtraAttributes());
 
             ExtendsDescriptor[] parents = md.getInheritedDescriptors();
@@ -316,9 +327,25 @@ public class ModuleDescriptorSerializer implements org.gradle.internal.serialize
             writeExtraInfo(md.getExtraInfo());
         }
 
-        private void writeExtraInfo(Map extraInfo) {
-            if (!extraInfo.isEmpty()) {
-                throw new UnsupportedOperationException("Not yet implemented");
+        private void writeExtraInfo(Map extraInfo) throws IOException {
+            writeInt(extraInfo.size());
+            for (Object o : extraInfo.entrySet()) {
+                Map.Entry extraDescr = (Map.Entry) o;
+                // original IvyXmlModuleDescriptorWriter tries to match a `NamespaceId` as the key
+                // but it doesn't seem to be possible to have it, given that the only way to add
+                // extra info is to call {@link ModuleDescriptor#addExtraInfo}
+                Object key = extraDescr.getKey();
+                String value = extraDescr.getValue().toString();
+                if (key instanceof String) {
+                    writeInt(0);
+                    writeString((String) key);
+                } else {
+                    writeInt(1);
+                    NamespaceId ns = (NamespaceId) key;
+                    writeString(ns.getNamespace());
+                    writeString(ns.getName());
+                }
+                writeString(value);
             }
         }
 
@@ -341,11 +368,11 @@ public class ModuleDescriptorSerializer implements org.gradle.internal.serialize
     }
 
     private static class Reader {
+        public static final String[] DEFAULT_CONFIGURATION = new String[]{"default"};
         private final Decoder decoder;
         private final ResolverStrategy resolverStrategy;
         private DefaultModuleDescriptor md;
         private DefaultDependencyDescriptor defaultConfMappingDescriptor;
-        private String defaultConfMapping;
 
         private Reader(Decoder decoder, ResolverStrategy resolverStrategy) {
             this.decoder = decoder;
@@ -409,25 +436,34 @@ public class ModuleDescriptorSerializer implements org.gradle.internal.serialize
         }
 
         private DependencyDescriptor readDependency() throws IOException {
-            String moduleOrg = readString();
-            String moduleName = readString();
-            String branch = readNullableString();
-            String rev = readString();
-            String branchConstraint = readNullableString();
-            String revConstraint = readNullableString();
+            ModuleRevisionId revId = readModuleRevisionId();
+            ModuleRevisionId dynId = null;
+            boolean dynamicConstraint = readBoolean();
+            if (dynamicConstraint) {
+                dynId = readModuleRevisionId();
+            }
 
             boolean force = readBoolean();
             boolean changing = readBoolean();
             boolean transitive = readBoolean();
 
-            Map extraAttributes = readExtraAttributes();
-            ModuleRevisionId revId = createModuleRevisionId(moduleOrg, moduleName, branch, rev, extraAttributes);
-            DefaultDependencyDescriptor dd = new DefaultDependencyDescriptor(md, revId, force, changing, transitive);
+            DefaultDependencyDescriptor dd = dynId == null
+                ? new DefaultDependencyDescriptor(md, revId, force, changing, transitive)
+                : new DefaultDependencyDescriptor(md, revId, dynId, force, changing, transitive);
             readDependencyConfigurationMapping(dd);
             readDependencyArtifactDescriptors(dd);
             readIncludeRules(dd);
             readExcludeRules(dd);
             return dd;
+        }
+
+        ModuleRevisionId readModuleRevisionId() throws IOException {
+            String moduleOrg = readString();
+            String moduleName = readNullableString();
+            String branch = readNullableString();
+            String rev = readNullableString();
+            Map extraAttributes = readExtraAttributes();
+            return createModuleRevisionId(moduleOrg, moduleName, branch, rev, extraAttributes);
         }
 
         private void readIncludeRules(DefaultDependencyDescriptor dd) throws IOException {
@@ -480,7 +516,7 @@ public class ModuleDescriptorSerializer implements org.gradle.internal.serialize
 
         private void readDependencyArtifactDescriptors(DefaultDependencyDescriptor dd) throws IOException {
             int len = readInt();
-            for (int i=0; i<len; i++) {
+            for (int i = 0; i < len; i++) {
                 String name = readString();
                 String type = readString();
                 String ext = readString();
@@ -495,6 +531,9 @@ public class ModuleDescriptorSerializer implements org.gradle.internal.serialize
                     url == null ? null : new URL(url),
                     extra
                 );
+                if (confs.length == 0) {
+                    confs = md.getConfigurationsNames();
+                }
                 for (String conf : confs) {
                     dd.addDependencyArtifact(conf, dad);
                 }
@@ -540,7 +579,7 @@ public class ModuleDescriptorSerializer implements org.gradle.internal.serialize
         protected DependencyDescriptor getDefaultConfMappingDescriptor() {
             if (defaultConfMappingDescriptor == null) {
                 defaultConfMappingDescriptor = new DefaultDependencyDescriptor(createModuleRevisionId("", "", ""), false);
-                parseDepsConfs(defaultConfMapping, defaultConfMappingDescriptor, false, false);
+                parseDepsConfs(DEFAULT_CONFIGURATION, defaultConfMappingDescriptor, false, false);
             }
             return defaultConfMappingDescriptor;
         }
@@ -628,15 +667,11 @@ public class ModuleDescriptorSerializer implements org.gradle.internal.serialize
         }
 
         /**
-         * Evaluate the optional condition in the given configuration, like "[org=MYORG]confX". If
-         * the condition evaluates to true, the configuration is returned, if the condition
-         * evaluatate to false, null is returned. If there are no conditions, the configuration
-         * itself is returned.
+         * Evaluate the optional condition in the given configuration, like "[org=MYORG]confX". If the condition evaluates to true, the configuration is returned, if the condition evaluatate to false,
+         * null is returned. If there are no conditions, the configuration itself is returned.
          *
-         * @param conf
-         *            the configuration to evaluate
-         * @param dd
-         *            the dependencydescriptor to which the configuration will be added
+         * @param conf the configuration to evaluate
+         * @param dd the dependencydescriptor to which the configuration will be added
          * @return the evaluated condition
          */
         private String evaluateCondition(String conf, DefaultDependencyDescriptor dd) {
@@ -691,7 +726,7 @@ public class ModuleDescriptorSerializer implements org.gradle.internal.serialize
 
         private void readPublications() throws IOException {
             int len = readInt();
-            for (int i=0; i<len; i++) {
+            for (int i = 0; i < len; i++) {
                 String name = readString();
                 String type = readString();
                 String ext = readString();
@@ -705,6 +740,9 @@ public class ModuleDescriptorSerializer implements org.gradle.internal.serialize
                     ext,
                     extraAttributes
                 );
+                if (confs.length == 0) {
+                    confs = md.getConfigurationsNames();
+                }
                 for (String conf : confs) {
                     md.addArtifact(conf, artifact);
                 }
@@ -750,6 +788,12 @@ public class ModuleDescriptorSerializer implements org.gradle.internal.serialize
             md.setStatus(readString());
             md.setResolvedPublicationDate(new Date(readLong()));
             md.setDefault(readBoolean());
+            String nsName = readNullableString();
+            if (nsName != null) {
+                Namespace ns = new Namespace();
+                ns.setName(nsName);
+                md.setNamespace(ns);
+            }
             Map<String, String> extraAttributes = readExtraAttributes();
             md.setModuleRevisionId(createModuleRevisionId(org, name, branch, rev, extraAttributes));
             readLicenses();
@@ -759,7 +803,26 @@ public class ModuleDescriptorSerializer implements org.gradle.internal.serialize
             readExtraInfo();
         }
 
-        private void readExtraInfo() {
+        @SuppressWarnings("unchecked")
+        private void readExtraInfo() throws IOException {
+            int len = readInt();
+            for (int i = 0; i < len; i++) {
+                Object key;
+                switch (readInt()) {
+                    case 0:
+                        key = readString();
+                        break;
+                    case 1:
+                        key = new NamespaceId(readString(), readString());
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Unexpected key type");
+                }
+                // Ivy has the good idea of declaring extraInfo as <String, String>
+                // but it's in reality <String|NamespaceId, String>
+                // and the only way to add the NamespaceId version is to use this...
+                md.getExtraInfo().put(key, readString());
+            }
         }
 
         private Map<String, String> readExtraAttributes() throws IOException {
