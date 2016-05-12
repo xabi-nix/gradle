@@ -40,6 +40,10 @@ public class StartParameterResolutionOverride {
         this.startParameter = startParameter;
     }
 
+    public boolean isRefreshDependencies() {
+        return startParameter.isRefreshDependencies();
+    }
+
     public void addResolutionRules(ResolutionRules resolutionRules) {
         if (startParameter.isOffline()) {
             resolutionRules.eachDependency(new Action<DependencyResolutionControl>() {

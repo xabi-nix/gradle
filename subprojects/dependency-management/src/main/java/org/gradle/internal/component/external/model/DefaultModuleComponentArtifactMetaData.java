@@ -53,4 +53,24 @@ public class DefaultModuleComponentArtifactMetaData implements ModuleComponentAr
     public IvyArtifactName getName() {
         return id.getName();
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        DefaultModuleComponentArtifactMetaData that = (DefaultModuleComponentArtifactMetaData) o;
+
+        return id.equals(that.id);
+
+    }
+
+    @Override
+    public int hashCode() {
+        return id.hashCode();
+    }
 }

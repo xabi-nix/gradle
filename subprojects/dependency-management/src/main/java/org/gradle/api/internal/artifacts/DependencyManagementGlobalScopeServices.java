@@ -20,12 +20,17 @@ import org.gradle.api.internal.artifacts.component.ComponentIdentifierFactory;
 import org.gradle.api.internal.artifacts.component.DefaultComponentIdentifierFactory;
 import org.gradle.api.internal.artifacts.ivyservice.DefaultIvyContextManager;
 import org.gradle.api.internal.artifacts.ivyservice.IvyContextManager;
+import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.memcache.CrossBuildModuleComponentCache;
 import org.gradle.api.internal.artifacts.ivyservice.moduleconverter.*;
 import org.gradle.api.internal.artifacts.ivyservice.moduleconverter.dependencies.*;
 import org.gradle.internal.resource.connector.ResourceConnectorFactory;
 import org.gradle.internal.resource.transport.file.FileConnectorFactory;
 
 class DependencyManagementGlobalScopeServices {
+    CrossBuildModuleComponentCache createCrossBuildCache() {
+        return new CrossBuildModuleComponentCache();
+    }
+
     IvyContextManager createIvyContextManager() {
         return new DefaultIvyContextManager();
     }

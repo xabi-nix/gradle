@@ -47,7 +47,7 @@ class IvyDescriptorValidationIntegrationTest extends AbstractDependencyResolutio
         module.ivyFile.setText(module.ivyFile.text.replace("revision='1.4'", "revision='1.6'"), "utf-8")
 
         then:
-        fails 'resolve'
+        fails 'resolve', '--refresh-dependencies'
         failure.assertThatCause(containsString("bad version: expected='1.4' found='1.6'"))
     }
 

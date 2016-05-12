@@ -32,27 +32,33 @@ public class InMemoryCachedRepositoryFactory implements Stoppable {
     public final static String TOGGLE_PROPERTY = "org.gradle.resolution.memorycache";
 
     private final static Logger LOG = Logging.getLogger(InMemoryCachedRepositoryFactory.class);
+    private final CrossBuildModuleComponentCache crossBuildCache;
 
     Map<String, InMemoryModuleComponentRepositoryCaches> cachePerRepo = new MapMaker().makeMap();
 
     final InMemoryCacheStats stats = new InMemoryCacheStats();
+
+    public InMemoryCachedRepositoryFactory(CrossBuildModuleComponentCache cache) {
+        this.crossBuildCache = cache;
+    }
 
     public ModuleComponentRepository cached(ModuleComponentRepository input) {
         if ("false".equalsIgnoreCase(System.getProperty(TOGGLE_PROPERTY))) {
             return input;
         }
 
-        InMemoryModuleComponentRepositoryCaches caches = cachePerRepo.get(input.getId());
+        String cacheId = input.getId();
+        InMemoryModuleComponentRepositoryCaches caches = cachePerRepo.get(cacheId);
         stats.reposWrapped++;
         if (caches == null) {
-            LOG.debug("Creating new in-memory cache for repo '{}' [{}].", input.getName(), input.getId());
+            LOG.debug("Creating new in-memory cache for repo '{}' [{}].", input.getName(), cacheId);
             caches = new InMemoryModuleComponentRepositoryCaches(stats);
             stats.cacheInstances++;
-            cachePerRepo.put(input.getId(), caches);
+            cachePerRepo.put(cacheId, caches);
         } else {
-            LOG.debug("Reusing in-memory cache for repo '{}' [{}].", input.getName(), input.getId());
+            LOG.debug("Reusing in-memory cache for repo '{}' [{}].", input.getName(), cacheId);
         }
-        return new InMemoryCachedModuleComponentRepository(caches, input);
+        return new InMemoryCachedModuleComponentRepository(caches, input, crossBuildCache);
     }
 
     public void stop() {

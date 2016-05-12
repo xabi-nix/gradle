@@ -46,10 +46,9 @@ task deleteCacheFiles(type: Delete) {
         and:
         succeeds('listJars')
         succeeds('deleteCacheFiles')
-        
+
         when:
         server.resetExpectations()
-        module.ivy.expectGet()
         module.jar.expectGet()
 
         then:

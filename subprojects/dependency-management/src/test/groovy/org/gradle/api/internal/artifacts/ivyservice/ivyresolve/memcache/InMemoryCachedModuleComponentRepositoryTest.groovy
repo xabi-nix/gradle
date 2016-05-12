@@ -47,7 +47,7 @@ class   InMemoryCachedModuleComponentRepositoryTest extends Specification {
         getLocalAccess() >> localDelegate
         getRemoteAccess() >> remoteDelegate
     }
-    def repo = new InMemoryCachedModuleComponentRepository(caches, delegate)
+    def repo = new InMemoryCachedModuleComponentRepository(caches, delegate, crossBuildCache)
     def lib = Mock(ModuleComponentIdentifier)
     def selector = newSelector("org", "lib", "1.0")
     def dep = Stub(DependencyMetaData) { getRequested() >> selector }

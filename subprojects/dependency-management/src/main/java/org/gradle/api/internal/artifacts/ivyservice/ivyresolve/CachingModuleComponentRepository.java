@@ -365,7 +365,7 @@ public class CachingModuleComponentRepository implements ModuleComponentReposito
         return new ArtifactAtRepositoryKey(delegate.getId(), moduleComponentArtifactMetaData.getId());
     }
 
-    static class CachingModuleSource implements ModuleSource {
+    public static class CachingModuleSource implements ModuleSource {
         private final BigInteger descriptorHash;
         private final boolean changingModule;
         private final ModuleSource delegate;

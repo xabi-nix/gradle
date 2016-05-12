@@ -282,6 +282,14 @@ def reportsFolder = new File(buildDir, "reports")
 ext.preferencesTraceFile = new File(reportsFolder, "preferences.trace.log")
 def userPrefsDirectory = new File("${System.getProperty("user.home")}/.java/.userPrefs")
 
+gradle.buildFinished {
+    if (System.getProperty('gradle.externalresources.recordstats')) {
+        def statistics = Class.forName('org.gradle.internal.resource.transfer.DefaultExternalResourceConnector').statistics
+        println statistics
+        statistics.reset()
+    }
+}
+
 gradle.addListener(new TaskExecutionListener() {
     void beforeExecute(Task task) {
         if (task.name != "clean") {
