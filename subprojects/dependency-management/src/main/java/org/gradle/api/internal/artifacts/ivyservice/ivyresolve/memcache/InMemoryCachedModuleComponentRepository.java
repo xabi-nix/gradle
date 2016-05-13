@@ -55,11 +55,13 @@ class InMemoryCachedModuleComponentRepository extends BaseModuleComponentReposit
     private class CachedAccess extends BaseModuleComponentRepositoryAccess {
         private final InMemoryMetaDataCache metaDataCache;
         private final InMemoryArtifactsCache artifactsCache;
+        private final String repoId;
 
         public CachedAccess(ModuleComponentRepositoryAccess access, InMemoryArtifactsCache artifactsCache, InMemoryMetaDataCache metaDataCache) {
             super(access);
             this.artifactsCache = artifactsCache;
             this.metaDataCache = metaDataCache;
+            this.repoId = getId();
         }
 
         @Override
@@ -76,26 +78,26 @@ class InMemoryCachedModuleComponentRepository extends BaseModuleComponentReposit
 
         public void resolveComponentMetaData(ModuleComponentIdentifier moduleComponentIdentifier, ComponentOverrideMetadata requestMetaData, BuildableModuleComponentMetaDataResolveResult result) {
             boolean changing = requestMetaData.isChanging();
-            if (!crossBuildCache.supplyMetaData(getId(), moduleComponentIdentifier, result, changing)) {
+            if (!crossBuildCache.supplyMetaData(repoId, moduleComponentIdentifier, result, changing)) {
                 if (!metaDataCache.supplyMetaData(moduleComponentIdentifier, result)) {
                     super.resolveComponentMetaData(moduleComponentIdentifier, requestMetaData, result);
                     metaDataCache.newDependencyResult(moduleComponentIdentifier, result);
                 }
                 if (!changing) {
-                    crossBuildCache.maybeCache(getId(), moduleComponentIdentifier, result);
+                    crossBuildCache.maybeCache(repoId, moduleComponentIdentifier, result);
                 }
             }
         }
 
         public void resolveArtifact(ComponentArtifactMetaData artifact, ModuleSource moduleSource, BuildableArtifactResolveResult result) {
             boolean canCache = moduleSource instanceof CachingModuleComponentRepository.CachingModuleSource && !((CachingModuleComponentRepository.CachingModuleSource) moduleSource).isChangingModule();
-            if (!crossBuildCache.supplyArtifact(getId(), artifact, result, !canCache)) {
+            if (!crossBuildCache.supplyArtifact(repoId, artifact, result, !canCache)) {
                 if (!artifactsCache.supplyArtifact(artifact.getId(), result)) {
                     super.resolveArtifact(artifact, moduleSource, result);
                     artifactsCache.newArtifact(artifact.getId(), result);
                 }
                 if (canCache) {
-                    crossBuildCache.maybeCache(getId(), artifact, result);
+                    crossBuildCache.maybeCache(repoId, artifact, result);
                 }
             }
         }
