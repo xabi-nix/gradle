@@ -168,7 +168,7 @@ class CachingDependencyMetadataInMemoryIntegrationTest extends AbstractDependenc
         output.contains "Name: updated" //uses updated artifact
     }
 
-    def "cache remains at the end of build"() {
+    def "cache expires at the end of build"() {
         given:
         ivyRepo.module("org", "dependency").publish()
         ivyRepo.module("org", "lib").publish()
@@ -190,6 +190,6 @@ class CachingDependencyMetadataInMemoryIntegrationTest extends AbstractDependenc
         run "dependencies", "--configuration", "conf"
 
         then:
-        !output.contains("org:dependency:1.0")
+        output.contains("org:dependency:1.0")
     }
 }

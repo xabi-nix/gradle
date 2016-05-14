@@ -70,7 +70,7 @@ class ResolveIvyFactoryTest extends Specification {
 
         resolveIvyFactory = new ResolveIvyFactory(moduleVersionsCache, moduleMetaDataCache, moduleArtifactsCache,
             cachedArtifactIndex, cacheLockingManager, startParameterResolutionOverride, buildCommencedTimeProvider,
-            inMemoryCachedRepositoryFactory, versionSelectorScheme, versionComparator, crossBuildModuleComponentCache)
+            inMemoryCachedRepositoryFactory, versionSelectorScheme, versionComparator)
     }
 
     def "returns an empty resolver when no repositories are configured" () {

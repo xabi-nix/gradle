@@ -17,9 +17,10 @@
 package org.gradle.api.internal.artifacts.ivyservice.ivyresolve.memcache;
 
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier;
+import org.gradle.api.internal.artifacts.ComponentMetadataProcessor;
+import org.gradle.api.internal.artifacts.configurations.ResolutionStrategyInternal;
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.BaseModuleComponentRepository;
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.BaseModuleComponentRepositoryAccess;
-import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.CachingModuleComponentRepository;
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.ModuleComponentRepository;
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.ModuleComponentRepositoryAccess;
 import org.gradle.internal.component.model.ComponentArtifactMetaData;
@@ -33,13 +34,15 @@ import org.gradle.internal.resolve.result.BuildableModuleVersionListingResolveRe
 class InMemoryCachedModuleComponentRepository extends BaseModuleComponentRepository {
     private final ModuleComponentRepositoryAccess localAccess;
     private final ModuleComponentRepositoryAccess remoteAccess;
-    private final CrossBuildModuleComponentCache crossBuildCache;
+    private final ResolutionStrategyInternal strategy;
+    private final ComponentMetadataProcessor metadataProcessor;
 
-    public InMemoryCachedModuleComponentRepository(InMemoryModuleComponentRepositoryCaches cache, ModuleComponentRepository delegate, CrossBuildModuleComponentCache crossBuildCache) {
+    public InMemoryCachedModuleComponentRepository(ResolutionStrategyInternal strategy, InMemoryModuleComponentRepositoryCaches cache, ModuleComponentRepository delegate, CrossBuildModuleComponentCache crossBuildCache, ComponentMetadataProcessor metadataProcessor) {
         super(delegate);
-        this.crossBuildCache = crossBuildCache;
-        this.localAccess = new CachedAccess(delegate.getLocalAccess(), cache.localArtifactsCache, cache.localMetaDataCache);
-        this.remoteAccess = new CachedAccess(delegate.getRemoteAccess(), cache.remoteArtifactsCache, cache.remoteMetaDataCache);
+        this.strategy = strategy;
+        this.metadataProcessor = metadataProcessor;
+        this.localAccess = new CachedAccess(delegate.getLocalAccess(), cache.localArtifactsCache, cache.localMetaDataCache, null);
+        this.remoteAccess = new CachedAccess(delegate.getRemoteAccess(), cache.remoteArtifactsCache, cache.remoteMetaDataCache, crossBuildCache);
     }
 
     @Override
@@ -54,13 +57,15 @@ class InMemoryCachedModuleComponentRepository extends BaseModuleComponentReposit
 
     private class CachedAccess extends BaseModuleComponentRepositoryAccess {
         private final InMemoryMetaDataCache metaDataCache;
+        private final CrossBuildModuleComponentCache crossBuildCache;
         private final InMemoryArtifactsCache artifactsCache;
         private final String repoId;
 
-        public CachedAccess(ModuleComponentRepositoryAccess access, InMemoryArtifactsCache artifactsCache, InMemoryMetaDataCache metaDataCache) {
+        public CachedAccess(ModuleComponentRepositoryAccess access, InMemoryArtifactsCache artifactsCache, InMemoryMetaDataCache metaDataCache, CrossBuildModuleComponentCache crossBuildCache) {
             super(access);
             this.artifactsCache = artifactsCache;
             this.metaDataCache = metaDataCache;
+            this.crossBuildCache = crossBuildCache;
             this.repoId = getId();
         }
 
@@ -78,26 +83,25 @@ class InMemoryCachedModuleComponentRepository extends BaseModuleComponentReposit
 
         public void resolveComponentMetaData(ModuleComponentIdentifier moduleComponentIdentifier, ComponentOverrideMetadata requestMetaData, BuildableModuleComponentMetaDataResolveResult result) {
             boolean changing = requestMetaData.isChanging();
-            if (!crossBuildCache.supplyMetaData(repoId, moduleComponentIdentifier, result, changing)) {
+            if (crossBuildCache==null || !crossBuildCache.supplyMetaData(repoId, moduleComponentIdentifier, result, changing, strategy.getCachePolicy(), metadataProcessor)) {
                 if (!metaDataCache.supplyMetaData(moduleComponentIdentifier, result)) {
                     super.resolveComponentMetaData(moduleComponentIdentifier, requestMetaData, result);
                     metaDataCache.newDependencyResult(moduleComponentIdentifier, result);
                 }
-                if (!changing) {
+                if (crossBuildCache!=null) {
                     crossBuildCache.maybeCache(repoId, moduleComponentIdentifier, result);
                 }
             }
         }
 
         public void resolveArtifact(ComponentArtifactMetaData artifact, ModuleSource moduleSource, BuildableArtifactResolveResult result) {
-            boolean canCache = moduleSource instanceof CachingModuleComponentRepository.CachingModuleSource && !((CachingModuleComponentRepository.CachingModuleSource) moduleSource).isChangingModule();
-            if (!crossBuildCache.supplyArtifact(repoId, artifact, result, !canCache)) {
+            if (crossBuildCache== null || !crossBuildCache.supplyArtifact(repoId, artifact, result, moduleSource, strategy.getCachePolicy())) {
                 if (!artifactsCache.supplyArtifact(artifact.getId(), result)) {
                     super.resolveArtifact(artifact, moduleSource, result);
                     artifactsCache.newArtifact(artifact.getId(), result);
                 }
-                if (canCache) {
-                    crossBuildCache.maybeCache(repoId, artifact, result);
+                if (crossBuildCache != null) {
+                    crossBuildCache.maybeCache(repoId, moduleSource, artifact, result);
                 }
             }
         }

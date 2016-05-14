@@ -17,6 +17,8 @@
 package org.gradle.api.internal.artifacts.ivyservice.ivyresolve.memcache;
 
 import com.google.common.collect.MapMaker;
+import org.gradle.api.internal.artifacts.ComponentMetadataProcessor;
+import org.gradle.api.internal.artifacts.configurations.ResolutionStrategyInternal;
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.ModuleComponentRepository;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
@@ -42,7 +44,7 @@ public class InMemoryCachedRepositoryFactory implements Stoppable {
         this.crossBuildCache = cache;
     }
 
-    public ModuleComponentRepository cached(ModuleComponentRepository input) {
+    public ModuleComponentRepository cached(ResolutionStrategyInternal strategy, ComponentMetadataProcessor metadataProcessor, ModuleComponentRepository input) {
         if ("false".equalsIgnoreCase(System.getProperty(TOGGLE_PROPERTY))) {
             return input;
         }
@@ -58,7 +60,7 @@ public class InMemoryCachedRepositoryFactory implements Stoppable {
         } else {
             LOG.debug("Reusing in-memory cache for repo '{}' [{}].", input.getName(), cacheId);
         }
-        return new InMemoryCachedModuleComponentRepository(caches, input, crossBuildCache);
+        return new InMemoryCachedModuleComponentRepository(strategy, caches, input, crossBuildCache, metadataProcessor);
     }
 
     public void stop() {

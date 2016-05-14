@@ -17,69 +17,96 @@ package org.gradle.api.internal.artifacts.ivyservice.ivyresolve.memcache;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import org.gradle.api.artifacts.ArtifactIdentifier;
+import org.gradle.api.artifacts.ResolvedModuleVersion;
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier;
+import org.gradle.api.internal.artifacts.ComponentMetadataProcessor;
+import org.gradle.api.internal.artifacts.configurations.dynamicversion.CachePolicy;
+import org.gradle.api.internal.artifacts.ivyservice.dynamicversions.DefaultResolvedModuleVersion;
+import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.CachingModuleComponentRepository;
+import org.gradle.internal.component.external.model.ModuleComponentArtifactMetaData;
 import org.gradle.internal.component.external.model.MutableModuleComponentResolveMetaData;
 import org.gradle.internal.component.model.ComponentArtifactMetaData;
+import org.gradle.internal.component.model.ModuleSource;
 import org.gradle.internal.resolve.result.BuildableArtifactResolveResult;
 import org.gradle.internal.resolve.result.BuildableModuleComponentMetaDataResolveResult;
 
 import java.io.File;
+import java.math.BigInteger;
 
 public class CrossBuildModuleComponentCache {
-    private final Cache<CacheKey<ModuleComponentIdentifier>, CachedModuleVersionResult> metadataCache = CacheBuilder.newBuilder()
+    private final Cache<CacheKey<ModuleComponentIdentifier>, CachedModule> metadataCache = CacheBuilder.newBuilder()
         .softValues()
         .build();
 
-    private final Cache<CacheKey<ComponentArtifactMetaData>, File> artifactCache = CacheBuilder.newBuilder()
+    private final Cache<CacheKey<ComponentArtifactMetaData>, CachedArtifact> artifactCache = CacheBuilder.newBuilder()
         .softValues()
         .build();
 
-    public boolean supplyMetaData(String repo, ModuleComponentIdentifier requested, BuildableModuleComponentMetaDataResolveResult result, boolean invalidate) {
+    public boolean supplyMetaData(String repo,
+                                  ModuleComponentIdentifier requested,
+                                  BuildableModuleComponentMetaDataResolveResult result,
+                                  boolean isChanging,
+                                  CachePolicy cachePolicy,
+                                  ComponentMetadataProcessor metadataProcessor) {
         CacheKey<ModuleComponentIdentifier> key = new CacheKey<ModuleComponentIdentifier>(repo, requested);
-        CachedModuleVersionResult fromCache = metadataCache.getIfPresent(key);
+        CachedModule fromCache = metadataCache.getIfPresent(key);
         if (fromCache == null) {
             return false;
         }
-        if (invalidate) {
+        if (isChanging && (cachePolicy.mustRefreshChangingModule(requested, fromCache.resolvedModuleVersion, fromCache.age()))) {
             metadataCache.invalidate(key);
             return false;
         }
-        fromCache.supply(result);
+        if (!isChanging && (cachePolicy.mustRefreshModule(requested, fromCache.resolvedModuleVersion, fromCache.age()))) {
+            metadataCache.invalidate(key);
+            return false;
+        }
+        fromCache.cachedModule.supply(result);
+        metadataProcessor.processMetadata(result.getMetaData());
         return true;
     }
 
-    public boolean supplyArtifact(String repo, ComponentArtifactMetaData requested, BuildableArtifactResolveResult result, boolean invalidate) {
+    public boolean supplyArtifact(String repo, ComponentArtifactMetaData requested, BuildableArtifactResolveResult result, ModuleSource moduleSource, CachePolicy cachePolicy) {
         CacheKey<ComponentArtifactMetaData> key = new CacheKey<ComponentArtifactMetaData>(repo, requested);
-        File fromCache = artifactCache.getIfPresent(key);
+        CachedArtifact fromCache = artifactCache.getIfPresent(key);
         if (fromCache == null) {
             return false;
         }
-        if (invalidate || !fromCache.exists()) {
+        if (!fromCache.file.exists()) {
             artifactCache.invalidate(key);
             return false;
         }
-        result.resolved(fromCache);
-        return true;
+        if (moduleSource instanceof CachingModuleComponentRepository.CachingModuleSource) {
+            CachingModuleComponentRepository.CachingModuleSource cms = (CachingModuleComponentRepository.CachingModuleSource) moduleSource;
+            BigInteger descriptorHash = cms.getDescriptorHash();
+            ArtifactIdentifier artifactIdentifier = ((ModuleComponentArtifactMetaData) requested).toArtifactIdentifier();
+            if (cachePolicy.mustRefreshArtifact(artifactIdentifier, fromCache.file, fromCache.age(), cms.isChangingModule(), descriptorHash.equals(fromCache.moduleDescriptorHash))) {
+                metadataCache.invalidate(key);
+                return false;
+            }
+            result.resolved(fromCache.file);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public void maybeCache(String repo, ModuleComponentIdentifier id, BuildableModuleComponentMetaDataResolveResult result) {
         if (result.hasResult() && result.getState().equals(BuildableModuleComponentMetaDataResolveResult.State.Resolved)) {
             MutableModuleComponentResolveMetaData metaData = result.getMetaData();
-            if (!metaData.isChanging() && !metaData.isGenerated()) {
-                metadataCache.put(new CacheKey<ModuleComponentIdentifier>(repo, id), new CachedModuleVersionResult(result));
+            if (!metaData.isChanging()) {
+                metadataCache.put(new CacheKey<ModuleComponentIdentifier>(repo, id), CachedModule.of(result));
             }
         }
     }
 
-    public void maybeCache(String repo, ComponentArtifactMetaData artifact, BuildableArtifactResolveResult result) {
-        if (result.hasResult()) {
-            artifactCache.put(new CacheKey<ComponentArtifactMetaData>(repo, artifact), result.getFile());
+    public void maybeCache(String repo, ModuleSource moduleSource, ComponentArtifactMetaData artifact, BuildableArtifactResolveResult result) {
+        if (result.hasResult() && result.getFailure() == null && (moduleSource instanceof CachingModuleComponentRepository.CachingModuleSource)) {
+            BigInteger hash = ((CachingModuleComponentRepository.CachingModuleSource) moduleSource).getDescriptorHash();
+            File file = result.getFile();
+            artifactCache.put(new CacheKey<ComponentArtifactMetaData>(repo, artifact), CachedArtifact.of(hash, file));
         }
-    }
-
-    public void clearCache() {
-        metadataCache.invalidateAll();
-        artifactCache.invalidateAll();
     }
 
     private final static class CacheKey<T> {
@@ -115,6 +142,47 @@ public class CrossBuildModuleComponentCache {
             int result = repoId.hashCode();
             result = 31 * result + module.hashCode();
             return result;
+        }
+    }
+
+    private final static class CachedModule {
+        private final long timestamp;
+        private final CachedModuleVersionResult cachedModule;
+        private final ResolvedModuleVersion resolvedModuleVersion;
+
+        private CachedModule(long timestamp, BuildableModuleComponentMetaDataResolveResult result, ResolvedModuleVersion resolvedModuleVersion) {
+            this.timestamp = timestamp;
+            this.cachedModule = new CachedModuleVersionResult(result);
+            this.resolvedModuleVersion = resolvedModuleVersion;
+        }
+
+        public static CachedModule of(BuildableModuleComponentMetaDataResolveResult result) {
+            return new CachedModule(System.currentTimeMillis(), result, new DefaultResolvedModuleVersion(result.getMetaData().getId()));
+        }
+
+        public long age() {
+            return System.currentTimeMillis() - timestamp;
+        }
+    }
+
+    private final static class CachedArtifact {
+        private final long timestamp;
+        private final BigInteger moduleDescriptorHash;
+        private final File file;
+
+
+        private CachedArtifact(long timestamp, BigInteger moduleDescriptorHash, File file) {
+            this.timestamp = timestamp;
+            this.moduleDescriptorHash = moduleDescriptorHash;
+            this.file = file;
+        }
+
+        public static CachedArtifact of(BigInteger hash, File artifact) {
+            return new CachedArtifact(System.currentTimeMillis(), hash, artifact);
+        }
+
+        public long age() {
+            return System.currentTimeMillis() - timestamp;
         }
     }
 }
