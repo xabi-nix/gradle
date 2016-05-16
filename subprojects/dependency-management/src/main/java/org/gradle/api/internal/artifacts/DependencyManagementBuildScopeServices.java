@@ -236,7 +236,7 @@ class DependencyManagementBuildScopeServices {
             buildCommencedTimeProvider,
             inMemoryCachedRepositoryFactory,
             versionSelectorScheme,
-            versionComparator);
+            versionComparator, crossBuildModuleComponentCache);
     }
 
     ArtifactDependencyResolver createArtifactDependencyResolver(ResolveIvyFactory resolveIvyFactory,

@@ -22,6 +22,7 @@ import org.gradle.api.internal.artifacts.ComponentSelectionRulesInternal
 import org.gradle.api.internal.artifacts.configurations.ResolutionStrategyInternal
 import org.gradle.api.internal.artifacts.ivyservice.CacheLockingManager
 import org.gradle.api.internal.artifacts.ivyservice.dynamicversions.ModuleVersionsCache
+import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.memcache.CrossBuildModuleComponentCache
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.memcache.InMemoryCachedRepositoryFactory
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.strategy.VersionComparator
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.strategy.VersionSelectorScheme
@@ -51,6 +52,7 @@ class ResolveIvyFactoryTest extends Specification {
     InMemoryCachedRepositoryFactory inMemoryCachedRepositoryFactory
     VersionSelectorScheme versionSelectorScheme
     VersionComparator versionComparator
+    CrossBuildModuleComponentCache crossBuildModuleComponentCache
 
     def setup() {
         moduleVersionsCache = Mock(ModuleVersionsCache)
@@ -67,10 +69,15 @@ class ResolveIvyFactoryTest extends Specification {
         }
         versionSelectorScheme = Mock(VersionSelectorScheme)
         versionComparator = Mock(VersionComparator)
+        crossBuildModuleComponentCache = Mock(CrossBuildModuleComponentCache) {
+            _ * getRepository(_, _, _) >> {
+                Mock(ModuleComponentRepository)
+            }
+        }
 
         resolveIvyFactory = new ResolveIvyFactory(moduleVersionsCache, moduleMetaDataCache, moduleArtifactsCache,
             cachedArtifactIndex, cacheLockingManager, startParameterResolutionOverride, buildCommencedTimeProvider,
-            inMemoryCachedRepositoryFactory, versionSelectorScheme, versionComparator)
+            inMemoryCachedRepositoryFactory, versionSelectorScheme, versionComparator, crossBuildModuleComponentCache)
     }
 
     def "returns an empty resolver when no repositories are configured" () {
