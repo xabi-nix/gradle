@@ -17,6 +17,7 @@
 package org.gradle.api.internal.artifacts.repositories.resolver;
 
 import org.gradle.api.artifacts.ModuleIdentifier;
+import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.memcache.CrossBuildModuleComponentCache;
 import org.gradle.api.resources.ResourceException;
 import org.gradle.internal.resolve.result.ResourceAwareResolveResult;
 import org.gradle.internal.component.model.IvyArtifactName;
@@ -30,8 +31,8 @@ import java.util.Set;
 public class MavenVersionLister implements VersionLister {
     private final MavenMetadataLoader mavenMetadataLoader;
 
-    public MavenVersionLister(ExternalResourceRepository repository) {
-        this.mavenMetadataLoader = new MavenMetadataLoader(repository);
+    public MavenVersionLister(ExternalResourceRepository repository, CrossBuildModuleComponentCache cache) {
+        this.mavenMetadataLoader = new MavenMetadataLoader(repository, cache);
     }
 
     public VersionPatternVisitor newVisitor(final ModuleIdentifier module, final Collection<String> dest, final ResourceAwareResolveResult result) {

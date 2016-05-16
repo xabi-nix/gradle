@@ -20,6 +20,7 @@ import org.gradle.api.Action
 import org.gradle.api.internal.artifacts.DefaultModuleIdentifier
 import org.gradle.api.internal.artifacts.DefaultModuleVersionIdentifier
 import org.gradle.api.internal.artifacts.ivyservice.IvyUtil
+import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.memcache.CrossBuildModuleComponentCache
 import org.gradle.api.resources.MissingResourceException
 import org.gradle.api.resources.ResourceException
 import org.gradle.internal.UncheckedException
@@ -42,7 +43,7 @@ class MavenVersionListerTest extends Specification {
     def pattern = pattern("testRepo/" + MavenPattern.M2_PATTERN)
     def metaDataResource = new URI('testRepo/org/acme/testproject/maven-metadata.xml')
 
-    final MavenVersionLister lister = new MavenVersionLister(repository)
+    final MavenVersionLister lister = new MavenVersionLister(repository, Mock(CrossBuildModuleComponentCache))
 
     def "visit parses maven-metadata.xml"() {
         ExternalResource resource = Mock()

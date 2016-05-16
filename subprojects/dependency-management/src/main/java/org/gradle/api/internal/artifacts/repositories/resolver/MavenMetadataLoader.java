@@ -18,10 +18,13 @@ package org.gradle.api.internal.artifacts.repositories.resolver;
 
 import org.apache.ivy.util.ContextualSAXHandler;
 import org.apache.ivy.util.XMLHelper;
+import org.gradle.api.Action;
+import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.memcache.CrossBuildModuleComponentCache;
 import org.gradle.api.resources.MissingResourceException;
 import org.gradle.api.resources.ResourceException;
 import org.gradle.internal.ErroringAction;
 import org.gradle.internal.resource.ExternalResource;
+import org.gradle.internal.resource.local.LocallyAvailableExternalResource;
 import org.gradle.internal.resource.transport.ExternalResourceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,9 +39,11 @@ class MavenMetadataLoader {
     private static final Logger LOGGER = LoggerFactory.getLogger(MavenMetadataLoader.class);
 
     private final ExternalResourceRepository repository;
+    private final CrossBuildModuleComponentCache cache;
 
-    public MavenMetadataLoader(ExternalResourceRepository repository) {
+    public MavenMetadataLoader(ExternalResourceRepository repository, CrossBuildModuleComponentCache cache) {
         this.repository = repository;
+        this.cache = cache;
     }
 
     public MavenMetadata load(URI metadataLocation) throws ResourceException {
@@ -54,10 +59,23 @@ class MavenMetadataLoader {
     }
 
     private void parseMavenMetadataInfo(final URI metadataLocation, final MavenMetadata metadata) {
-        ExternalResource resource = repository.getResource(metadataLocation);
+        final ExternalResource resource = repository.getResource(metadataLocation);
         if (resource == null) {
             throw new MissingResourceException(metadataLocation, String.format("Maven meta-data not available: %s", metadataLocation));
         }
+        if (resource instanceof LocallyAvailableExternalResource) {
+            cache.supplyMavenMetadataInfo((LocallyAvailableExternalResource) resource, metadata, new Action<MavenMetadata>() {
+                @Override
+                public void execute(MavenMetadata mavenMetadata) {
+                    doParseMavenMetadataInfo(mavenMetadata, resource);
+                }
+            });
+            return;
+        }
+        doParseMavenMetadataInfo(metadata, resource);
+    }
+
+    private void doParseMavenMetadataInfo(MavenMetadata metadata, ExternalResource resource) {
         try {
             parseMavenMetadataInto(resource, metadata);
         } finally {

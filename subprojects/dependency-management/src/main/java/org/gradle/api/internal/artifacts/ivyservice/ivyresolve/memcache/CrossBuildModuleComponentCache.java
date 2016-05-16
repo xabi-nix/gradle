@@ -17,6 +17,7 @@ package org.gradle.api.internal.artifacts.ivyservice.ivyresolve.memcache;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import org.gradle.api.Action;
 import org.gradle.api.artifacts.ArtifactIdentifier;
 import org.gradle.api.artifacts.ResolvedModuleVersion;
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier;
@@ -29,8 +30,12 @@ import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.CachingModuleComp
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.ModuleComponentRepository;
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.ModuleComponentRepositoryAccess;
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.RepositoryChainModuleSource;
+import org.gradle.api.internal.artifacts.repositories.resolver.MavenMetadata;
 import org.gradle.api.internal.component.ArtifactType;
+import org.gradle.internal.Cast;
+import org.gradle.internal.Factory;
 import org.gradle.internal.component.external.model.ModuleComponentArtifactMetaData;
+import org.gradle.internal.component.external.model.ModuleComponentResolveMetaData;
 import org.gradle.internal.component.external.model.MutableModuleComponentResolveMetaData;
 import org.gradle.internal.component.model.ComponentArtifactMetaData;
 import org.gradle.internal.component.model.ComponentOverrideMetadata;
@@ -40,9 +45,15 @@ import org.gradle.internal.component.model.ModuleSource;
 import org.gradle.internal.resolve.result.BuildableArtifactResolveResult;
 import org.gradle.internal.resolve.result.BuildableArtifactSetResolveResult;
 import org.gradle.internal.resolve.result.BuildableModuleComponentMetaDataResolveResult;
+import org.gradle.internal.resource.local.LocallyAvailableExternalResource;
+import org.gradle.internal.resource.local.LocallyAvailableResource;
 
 import java.io.File;
+import java.lang.ref.SoftReference;
 import java.math.BigInteger;
+import java.net.URI;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * The cross build module component cache caches resolution of module metadata and artifacts for remote access.
@@ -57,8 +68,41 @@ public class CrossBuildModuleComponentCache {
         .softValues()
         .build();
 
+    private final ConcurrentMap<URI, SoftReference<ModuleComponentResolveCacheEntry>> uriToModuleComponentCache = new ConcurrentHashMap<URI, SoftReference<ModuleComponentResolveCacheEntry>>();
+    private final ConcurrentMap<URI, SoftReference<MavenMetadataCacheEntry>> uriToMavenMetadataCacheEntry = new ConcurrentHashMap<URI, SoftReference<MavenMetadataCacheEntry>>();
+
+    public <T extends ModuleComponentResolveMetaData> T getModuleComponentResolveMetadata(LocallyAvailableExternalResource resource, Factory<T> loader) {
+        URI uri = resource.getURI();
+        SoftReference<ModuleComponentResolveCacheEntry> ref = uriToModuleComponentCache.get(uri);
+        LocallyAvailableResource localResource = resource.getLocalResource();
+        if (ref!=null) {
+            ModuleComponentResolveCacheEntry cacheEntry = ref.get();
+            if (cacheEntry != null && cacheEntry.lastModified == localResource.getLastModified() && cacheEntry.contentLength == localResource.getContentLength()) {
+                return Cast.uncheckedCast(cacheEntry.metadata);
+            }
+        }
+        T value = loader.create();
+        uriToModuleComponentCache.putIfAbsent(uri, new SoftReference<ModuleComponentResolveCacheEntry>(new ModuleComponentResolveCacheEntry(localResource.getLastModified(), localResource.getContentLength(), value)));
+        return value;
+    }
+
     public ModuleComponentRepository getRepository(ModuleComponentRepository delegate, CachePolicy cachePolicy, ComponentMetadataProcessor metadataProcessor) {
         return new CrossBuildCacheRepository(delegate, cachePolicy, metadataProcessor);
+    }
+
+    public void supplyMavenMetadataInfo(LocallyAvailableExternalResource resource, MavenMetadata metadata, Action<MavenMetadata> loader) {
+        URI uri = resource.getURI();
+        SoftReference<MavenMetadataCacheEntry> ref = uriToMavenMetadataCacheEntry.get(uri);
+        LocallyAvailableResource localResource = resource.getLocalResource();
+        if (ref!=null) {
+            MavenMetadataCacheEntry cacheEntry = ref.get();
+            if (cacheEntry != null && cacheEntry.lastModified == localResource.getLastModified() && cacheEntry.contentLength == localResource.getContentLength()) {
+                metadata.copyFrom(cacheEntry.metadata);
+                return;
+            }
+        }
+        loader.execute(metadata);
+        uriToMavenMetadataCacheEntry.putIfAbsent(uri, new SoftReference<MavenMetadataCacheEntry>(new MavenMetadataCacheEntry(localResource.getLastModified(), localResource.getContentLength(), metadata)));
     }
 
     private final static class CacheKey<T> {
@@ -277,7 +321,29 @@ public class CrossBuildModuleComponentCache {
                 }
             }
         }
+    }
 
+    private static class LocalResourceCacheEntry<T> {
+        protected final long lastModified;
+        protected final long contentLength;
+        protected final T metadata;
 
+        private LocalResourceCacheEntry(long lastModified, long contentLength, T metadata) {
+            this.lastModified = lastModified;
+            this.contentLength = contentLength;
+            this.metadata = metadata;
+        }
+    }
+
+    private static class ModuleComponentResolveCacheEntry extends LocalResourceCacheEntry<ModuleComponentResolveMetaData> {
+        private ModuleComponentResolveCacheEntry(long lastModified, long contentLength, ModuleComponentResolveMetaData metadata) {
+            super(lastModified, contentLength, metadata);
+        }
+    }
+
+    private static class MavenMetadataCacheEntry extends LocalResourceCacheEntry<MavenMetadata> {
+        private MavenMetadataCacheEntry(long lastModified, long contentLength, MavenMetadata metadata) {
+            super(lastModified, contentLength, metadata);
+        }
     }
 }

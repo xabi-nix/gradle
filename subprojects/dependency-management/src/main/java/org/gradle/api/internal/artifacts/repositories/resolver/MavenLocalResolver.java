@@ -17,14 +17,15 @@ package org.gradle.api.internal.artifacts.repositories.resolver;
 
 import org.gradle.api.Nullable;
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier;
+import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.memcache.CrossBuildModuleComponentCache;
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.parser.MetaDataParser;
+import org.gradle.api.internal.artifacts.repositories.transport.RepositoryTransport;
 import org.gradle.internal.component.external.model.DefaultMavenModuleResolveMetaData;
 import org.gradle.internal.component.external.model.MavenModuleResolveMetaData;
 import org.gradle.internal.component.external.model.ModuleComponentArtifactMetaData;
 import org.gradle.internal.component.external.model.MutableModuleComponentResolveMetaData;
 import org.gradle.internal.resolve.result.DefaultResourceAwareResolveResult;
 import org.gradle.internal.resolve.result.ResourceAwareResolveResult;
-import org.gradle.api.internal.artifacts.repositories.transport.RepositoryTransport;
 import org.gradle.internal.resource.local.FileStore;
 import org.gradle.internal.resource.local.LocallyAvailableResourceFinder;
 import org.slf4j.Logger;
@@ -38,8 +39,9 @@ public class MavenLocalResolver extends MavenResolver {
     public MavenLocalResolver(String name, URI rootUri, RepositoryTransport transport,
                               LocallyAvailableResourceFinder<ModuleComponentArtifactMetaData> locallyAvailableResourceFinder,
                               FileStore<ModuleComponentArtifactMetaData> artifactFileStore,
-                              MetaDataParser<DefaultMavenModuleResolveMetaData> pomParser) {
-        super(name, rootUri, transport, locallyAvailableResourceFinder, artifactFileStore, pomParser);
+                              MetaDataParser<DefaultMavenModuleResolveMetaData> pomParser,
+                              CrossBuildModuleComponentCache cache) {
+        super(name, rootUri, transport, locallyAvailableResourceFinder, artifactFileStore, pomParser, cache);
     }
 
     @Override

@@ -21,6 +21,7 @@ import org.gradle.api.artifacts.repositories.AuthenticationContainer;
 import org.gradle.api.artifacts.repositories.FlatDirectoryArtifactRepository;
 import org.gradle.api.artifacts.repositories.IvyArtifactRepository;
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
+import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.memcache.CrossBuildModuleComponentCache;
 import org.gradle.authentication.Authentication;
 import org.gradle.api.internal.artifacts.BaseRepositoryFactory;
 import org.gradle.api.internal.artifacts.dsl.DefaultRepositoryHandler;
@@ -50,6 +51,7 @@ public class DefaultBaseRepositoryFactory implements BaseRepositoryFactory {
     private final FileStore<ModuleComponentArtifactMetaData> artifactFileStore;
     private final MetaDataParser<DefaultMavenModuleResolveMetaData> pomParser;
     private final AuthenticationSchemeRegistry authenticationSchemeRegistry;
+    private final CrossBuildModuleComponentCache crossBuildModuleComponentCache;
 
     public DefaultBaseRepositoryFactory(LocalMavenRepositoryLocator localMavenRepositoryLocator,
                                         FileResolver fileResolver,
@@ -58,7 +60,7 @@ public class DefaultBaseRepositoryFactory implements BaseRepositoryFactory {
                                         LocallyAvailableResourceFinder<ModuleComponentArtifactMetaData> locallyAvailableResourceFinder,
                                         ResolverStrategy resolverStrategy,
                                         FileStore<ModuleComponentArtifactMetaData> artifactFileStore, MetaDataParser<DefaultMavenModuleResolveMetaData> pomParser,
-                                        AuthenticationSchemeRegistry authenticationSchemeRegistry) {
+                                        AuthenticationSchemeRegistry authenticationSchemeRegistry, CrossBuildModuleComponentCache crossBuildModuleComponentCache) {
         this.localMavenRepositoryLocator = localMavenRepositoryLocator;
         this.fileResolver = fileResolver;
         this.instantiator = instantiator;
@@ -68,6 +70,7 @@ public class DefaultBaseRepositoryFactory implements BaseRepositoryFactory {
         this.artifactFileStore = artifactFileStore;
         this.pomParser = pomParser;
         this.authenticationSchemeRegistry = authenticationSchemeRegistry;
+        this.crossBuildModuleComponentCache = crossBuildModuleComponentCache;
     }
 
     public FlatDirectoryArtifactRepository createFlatDirRepository() {
@@ -77,7 +80,7 @@ public class DefaultBaseRepositoryFactory implements BaseRepositoryFactory {
 
     public MavenArtifactRepository createMavenLocalRepository() {
         MavenArtifactRepository mavenRepository = instantiator.newInstance(DefaultMavenLocalArtifactRepository.class, fileResolver, transportFactory,
-                locallyAvailableResourceFinder, instantiator, artifactFileStore, pomParser, createAuthenticationContainer());
+                locallyAvailableResourceFinder, instantiator, artifactFileStore, pomParser, createAuthenticationContainer(), crossBuildModuleComponentCache);
         final File localMavenRepository = localMavenRepositoryLocator.getLocalMavenRepository();
         mavenRepository.setUrl(localMavenRepository);
         return mavenRepository;
@@ -102,7 +105,7 @@ public class DefaultBaseRepositoryFactory implements BaseRepositoryFactory {
 
     public MavenArtifactRepository createMavenRepository() {
         return instantiator.newInstance(DefaultMavenArtifactRepository.class, fileResolver, transportFactory,
-                locallyAvailableResourceFinder, instantiator, artifactFileStore, pomParser, createAuthenticationContainer());
+                locallyAvailableResourceFinder, instantiator, artifactFileStore, pomParser, createAuthenticationContainer(), crossBuildModuleComponentCache);
     }
 
     protected AuthenticationContainer createAuthenticationContainer() {

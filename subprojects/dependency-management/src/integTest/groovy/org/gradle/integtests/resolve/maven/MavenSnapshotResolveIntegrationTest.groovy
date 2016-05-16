@@ -199,7 +199,7 @@ repositories {
 configurations { compile }
 configurations.compile.resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
 
-dependencies { 
+dependencies {
     compile "org.gradle.integtests.resolve:unique:1.0-SNAPSHOT"
     compile "org.gradle.integtests.resolve:nonunique:1.0-SNAPSHOT"
 }

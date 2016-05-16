@@ -14,15 +14,20 @@
  * limitations under the License.
  */
 package org.gradle.api.internal.artifacts.repositories
+
+import org.gradle.api.Action
 import org.gradle.api.InvalidUserDataException
 import org.gradle.api.artifacts.repositories.AuthenticationContainer
+import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.memcache.CrossBuildModuleComponentCache
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.parser.MetaDataParser
+import org.gradle.api.internal.artifacts.repositories.resolver.MavenMetadata
 import org.gradle.api.internal.artifacts.repositories.resolver.MavenResolver
 import org.gradle.api.internal.artifacts.repositories.transport.RepositoryTransport
 import org.gradle.api.internal.artifacts.repositories.transport.RepositoryTransportFactory
 import org.gradle.api.internal.file.FileResolver
 import org.gradle.api.internal.filestore.ivy.ArtifactIdentifierFileStore
 import org.gradle.internal.reflect.DirectInstantiator
+import org.gradle.internal.resource.local.LocallyAvailableExternalResource
 import org.gradle.internal.resource.local.LocallyAvailableResourceFinder
 import org.gradle.internal.resource.transport.ExternalResourceRepository
 import spock.lang.Specification
@@ -35,9 +40,19 @@ class DefaultMavenArtifactRepositoryTest extends Specification {
     final ArtifactIdentifierFileStore artifactIdentifierFileStore = Stub()
     final MetaDataParser pomParser = Stub()
     final AuthenticationContainer authenticationContainer = Stub()
+    final CrossBuildModuleComponentCache crossBuildCache = Mock(CrossBuildModuleComponentCache) {
+        _ * supplyMavenMetadataInfo(_, _, _) >> {
+            def (LocallyAvailableExternalResource resource, MavenMetadata metadata, Action<MavenMetadata> loader) = it
+            loader.execute(metadata)
+        }
+        _ * getModuleComponentResolveMetadata(_, _) >> {
+            def (LocallyAvailableExternalResource resource, org.gradle.internal.Factory<?> loader) = it
+            loader.create()
+        }
+    }
 
     final DefaultMavenArtifactRepository repository = new DefaultMavenArtifactRepository(
-            resolver, transportFactory, locallyAvailableResourceFinder, DirectInstantiator.INSTANCE, artifactIdentifierFileStore, pomParser, authenticationContainer)
+        resolver, transportFactory, locallyAvailableResourceFinder, DirectInstantiator.INSTANCE, artifactIdentifierFileStore, pomParser, authenticationContainer, crossBuildCache)
 
     def "creates local repository"() {
         given:

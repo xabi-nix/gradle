@@ -17,19 +17,36 @@ package org.gradle.api.internal.artifacts;
 
 import org.gradle.StartParameter;
 import org.gradle.api.artifacts.PublishArtifact;
-import org.gradle.api.artifacts.dsl.*;
+import org.gradle.api.artifacts.dsl.ArtifactHandler;
+import org.gradle.api.artifacts.dsl.ComponentMetadataHandler;
+import org.gradle.api.artifacts.dsl.ComponentModuleMetadataHandler;
+import org.gradle.api.artifacts.dsl.DependencyHandler;
+import org.gradle.api.artifacts.dsl.RepositoryHandler;
 import org.gradle.api.internal.DomainObjectContext;
 import org.gradle.api.internal.artifacts.component.ComponentIdentifierFactory;
 import org.gradle.api.internal.artifacts.configurations.ConfigurationContainerInternal;
 import org.gradle.api.internal.artifacts.configurations.DefaultConfigurationContainer;
 import org.gradle.api.internal.artifacts.configurations.DependencyMetaDataProvider;
-import org.gradle.api.internal.artifacts.dsl.*;
+import org.gradle.api.internal.artifacts.dsl.DefaultArtifactHandler;
+import org.gradle.api.internal.artifacts.dsl.DefaultComponentMetadataHandler;
+import org.gradle.api.internal.artifacts.dsl.DefaultComponentModuleMetadataHandler;
+import org.gradle.api.internal.artifacts.dsl.DefaultRepositoryHandler;
+import org.gradle.api.internal.artifacts.dsl.PublishArtifactNotationParserFactory;
 import org.gradle.api.internal.artifacts.dsl.dependencies.DefaultDependencyHandler;
 import org.gradle.api.internal.artifacts.dsl.dependencies.DependencyFactory;
 import org.gradle.api.internal.artifacts.dsl.dependencies.ProjectFinder;
-import org.gradle.api.internal.artifacts.ivyservice.*;
+import org.gradle.api.internal.artifacts.ivyservice.CacheLockingManager;
+import org.gradle.api.internal.artifacts.ivyservice.DefaultConfigurationResolver;
+import org.gradle.api.internal.artifacts.ivyservice.DefaultIvyDependencyPublisher;
+import org.gradle.api.internal.artifacts.ivyservice.ErrorHandlingConfigurationResolver;
+import org.gradle.api.internal.artifacts.ivyservice.IvyBackedArtifactPublisher;
+import org.gradle.api.internal.artifacts.ivyservice.IvyContextManager;
+import org.gradle.api.internal.artifacts.ivyservice.IvyXmlModuleDescriptorWriter;
+import org.gradle.api.internal.artifacts.ivyservice.SelfResolvingDependencyConfigurationResolver;
+import org.gradle.api.internal.artifacts.ivyservice.ShortCircuitEmptyConfigurationResolver;
 import org.gradle.api.internal.artifacts.ivyservice.dependencysubstitution.DependencySubstitutionRuleProvider;
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.ResolveIvyFactory;
+import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.memcache.CrossBuildModuleComponentCache;
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.parser.GradlePomModuleDescriptorParser;
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.strategy.ResolverStrategy;
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.strategy.VersionSelectorScheme;
@@ -82,7 +99,8 @@ public class DefaultDependencyManagementServices implements DependencyManagement
                                                           RepositoryTransportFactory repositoryTransportFactory, LocallyAvailableResourceFinder<ModuleComponentArtifactMetaData> locallyAvailableResourceFinder,
                                                           ResolverStrategy resolverStrategy, ArtifactIdentifierFileStore artifactIdentifierFileStore,
                                                           VersionSelectorScheme versionSelectorScheme,
-                                                          AuthenticationSchemeRegistry authenticationSchemeRegistry) {
+                                                          AuthenticationSchemeRegistry authenticationSchemeRegistry,
+                                                          CrossBuildModuleComponentCache crossBuildResolveDescriptorCache) {
             return new DefaultBaseRepositoryFactory(
                     localMavenRepositoryLocator,
                     fileResolver,
@@ -91,9 +109,9 @@ public class DefaultDependencyManagementServices implements DependencyManagement
                     locallyAvailableResourceFinder,
                     resolverStrategy,
                     artifactIdentifierFileStore,
-                    new GradlePomModuleDescriptorParser(versionSelectorScheme),
-                    authenticationSchemeRegistry
-            );
+                    new GradlePomModuleDescriptorParser(versionSelectorScheme, crossBuildResolveDescriptorCache),
+                    authenticationSchemeRegistry,
+                    crossBuildResolveDescriptorCache);
         }
 
         RepositoryHandler createRepositoryHandler(Instantiator instantiator, BaseRepositoryFactory baseRepositoryFactory) {
