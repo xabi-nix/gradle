@@ -74,14 +74,23 @@ public class DefaultModuleRegistry implements ModuleRegistry {
     public Module getModule(String name) {
         Module module = modules.get(name);
         if (module == null) {
-            module = loadModule(name);
+            module = loadModule(name, true);
             modules.put(name, module);
         }
         return module;
     }
 
-    private Module loadModule(String moduleName) {
-        File jarFile = findJar(moduleName);
+    public Module getGradleModule(String name) {
+        Module module = modules.get(name);
+        if (module == null) {
+            module = loadModule(name, false);
+            modules.put(name, module);
+        }
+        return module;
+    }
+
+    private Module loadModule(String moduleName, boolean searchClassPath) {
+        File jarFile = searchClassPath ? findJar(moduleName) : findJarInInstallation(moduleName);
         if (jarFile != null) {
             Set<File> implementationClasspath = new LinkedHashSet<File>();
             implementationClasspath.add(jarFile);
@@ -197,6 +206,14 @@ public class DefaultModuleRegistry implements ModuleRegistry {
     }
 
     private File findJar(String name) {
+        File installationJar = findJarInInstallation(name);
+        if (installationJar != null) {
+            return installationJar;
+        }
+        return findJarInClasspath(name);
+    }
+
+    private File findJarInInstallation(String name) {
         Pattern pattern = Pattern.compile(Pattern.quote(name) + "-\\d.+\\.jar");
         if (gradleInstallation != null) {
             for (File libDir : gradleInstallation.getLibDirs()) {
@@ -207,6 +224,12 @@ public class DefaultModuleRegistry implements ModuleRegistry {
                 }
             }
         }
+
+        return null;
+    }
+
+    private File findJarInClasspath(String name) {
+        Pattern pattern = Pattern.compile(Pattern.quote(name) + "-\\d.+\\.jar");
         for (File file : classpath) {
             if (pattern.matcher(file.getName()).matches()) {
                 return file;

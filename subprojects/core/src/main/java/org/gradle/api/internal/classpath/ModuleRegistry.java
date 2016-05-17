@@ -36,6 +36,13 @@ public interface ModuleRegistry {
     Module getModule(String name) throws UnknownModuleException;
 
     /**
+     * Locates a Gradle library by name. Does not search the classpath outside of the gradle installation.
+     *
+     * @return the module. Does not return null.
+     */
+    Module getGradleModule(String name) throws UnknownModuleException;
+
+    /**
      * Returns the classpath used to search for modules, in addition to default locations in the Gradle distribution (if available). May be empty.
      */
     ClassPath getAdditionalClassPath();
