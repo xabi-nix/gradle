@@ -89,6 +89,20 @@ class ZipCopyActionTest extends Specification {
         assertVisitsPermissions(new ZipFileTree(zipFile, null, fileSystem(), directoryFileTreeFactory()), expected)
     }
 
+    void closesZipFileAfterCreating() {
+        given:
+        zip(dir("dir"), file("dir/file1"), file("file2"))
+        zip(dir("dir"), file("dir/file1"), file("file2"))
+
+        when:
+        TestFile expandDir = tmpDir.getTestDirectory().file("expanded")
+        zipFile.unzipTo(expandDir)
+
+        then:
+        expandDir.file("dir/file1").assertContents(equalTo("contents of dir/file1"))
+        expandDir.file("file2").assertContents(equalTo("contents of file2"))
+    }
+
     void wrapsFailureToOpenOutputFile() {
         given:
         def invalidZipFile = tmpDir.createDir("test.zip")
