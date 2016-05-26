@@ -16,18 +16,21 @@
 
 package org.gradle.launcher.daemon.server.health;
 
+import org.gradle.internal.event.ListenerManager;
 import org.gradle.launcher.daemon.server.api.DaemonCommandAction;
 
 public class DefaultDaemonHealthServices implements DaemonHealthServices {
     private final HintGCAfterBuild hygieneAction = new HintGCAfterBuild();
     private final DaemonStatus status;
     private final DaemonInformation daemonInformation;
+    private final ListenerManager listenerManager;
     private final HealthLogger logger = new HealthLogger();
     private final DaemonHealthTracker tracker;
 
-    public DefaultDaemonHealthServices(DaemonHealthCheck healthCheck, DaemonStatus status, DaemonStats stats, DaemonInformation daemonInformation) {
+    public DefaultDaemonHealthServices(DaemonHealthCheck healthCheck, DaemonStatus status, DaemonStats stats, DaemonInformation daemonInformation, ListenerManager listenerManager) {
         this.status = status;
         this.daemonInformation = daemonInformation;
+        this.listenerManager = listenerManager;
         this.tracker = new DaemonHealthTracker(stats, healthCheck, logger);
     }
 
@@ -50,4 +53,5 @@ public class DefaultDaemonHealthServices implements DaemonHealthServices {
     public DaemonInformation getDaemonInformation() {
         return daemonInformation;
     }
+
 }

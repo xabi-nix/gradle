@@ -93,7 +93,7 @@ public class DaemonServices extends DefaultServiceRegistry {
         DaemonStatus status = new DaemonStatus(stats);
         DaemonHealthCheck healthCheck = new DefaultDaemonHealthCheck(DaemonExpirationStrategies.getHealthStrategy(status), listenerManager);
         DaemonInformation daemonInformation = DefaultDaemonInformation.of(stats, configuration.getIdleTimeout(), get(DaemonRegistry.class));
-        return new DefaultDaemonHealthServices(healthCheck, status, stats, daemonInformation);
+        return new DefaultDaemonHealthServices(healthCheck, status, stats, daemonInformation, listenerManager);
     }
 
     protected ScheduledExecutorService createScheduledExecutorService() {
@@ -120,6 +120,10 @@ public class DaemonServices extends DefaultServiceRegistry {
             get(ScheduledExecutorService.class),
             get(ListenerManager.class)
         );
+    }
+
+    protected DaemonExpirationListenerRegistry createDaemonExpirationListenerRegistry(ListenerManager listenerManager) {
+        return new DaemonExpirationListenerRegistry(listenerManager);
     }
 
 }

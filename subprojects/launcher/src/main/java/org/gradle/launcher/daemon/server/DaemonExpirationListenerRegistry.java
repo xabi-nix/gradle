@@ -16,14 +16,17 @@
 
 package org.gradle.launcher.daemon.server;
 
-/**
- * Represents an event where a daemon expiration condition was detected and the daemon should now stop.
- */
-public interface DaemonExpirationListener {
-    /**
-     * Will be fired when the daemon expiration event occurs.
-     *
-     * @param result The result object from the triggered condition
-     */
-    void onExpirationEvent(DaemonExpirationResult result);
+import org.gradle.internal.event.ListenerManager;
+
+public class DaemonExpirationListenerRegistry {
+
+    private final ListenerManager listenerManager;
+
+    public DaemonExpirationListenerRegistry(ListenerManager listenerManager) {
+        this.listenerManager = listenerManager;
+    }
+
+    void register(DaemonExpirationListener listener) {
+        listenerManager.addListener(listener);
+    }
 }

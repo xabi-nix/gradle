@@ -1,3 +1,7 @@
+import javax.xml.transform.TransformerFactory
+import javax.xml.transform.stream.StreamResult
+import javax.xml.transform.stream.StreamSource
+
 allprojects {
     ext.useClassycle = { params = [:] ->
         def excludePatterns = params.exclude ?: []
@@ -67,4 +71,13 @@ allprojects {
             codeQuality.dependsOn taskName
         }
     }
+
+    task classycleHtmlReport << {
+        def xslt= new File("${project.buildDir}/reports/classcycle/reportXMLtoHTML.xsl").text
+        def transformer = TransformerFactory.newInstance().newTransformer(new StreamSource(new StringReader(xslt)))
+        def xml= new File("${project.buildDir}/reports/classcycle/main_analysis.xml").getText()
+        def html = new FileOutputStream("${project.buildDir}/reports/classcycle/classcycle.html")
+        transformer.transform(new StreamSource(new StringReader(xml)), new StreamResult(html))
+    }
 }
+

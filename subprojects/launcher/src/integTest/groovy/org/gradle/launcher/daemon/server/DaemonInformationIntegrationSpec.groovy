@@ -37,7 +37,44 @@ class DaemonInformationIntegrationSpec extends DaemonIntegrationSpec {
 
     }
 
-    def "info is updated to reflect a second run"() {
-        expect: true
+    def "The daemon expiration listener is fired"() {
+        given:
+        buildFile << """
+           import org.gradle.launcher.daemon.server.DaemonExpirationListener
+           import org.gradle.launcher.daemon.server.DaemonExpirationStrategy
+           import org.gradle.launcher.daemon.server.DaemonExpirationResult
+           import org.gradle.launcher.daemon.server.AllDaemonExpirationStrategy
+           import org.gradle.launcher.daemon.server.DaemonExpirationStatus
+
+           class TestExpirationStrategy implements DaemonExpirationStrategy {
+                @Override
+                public DaemonExpirationResult checkExpiration() {
+                    return new DaemonExpirationResult(DaemonExpirationStatus.GRACEFUL_EXPIRE, "expiring daemon with TestExpirationStrategy")
+                }
+            }
+
+           def daemon =  project.getServices().get(org.gradle.launcher.daemon.server.Daemon)
+           daemon.scheduleExpirationChecks(new AllDaemonExpirationStrategy([new TestExpirationStrategy()]), 500)
+
+           def registry = project.getServices().get(org.gradle.launcher.daemon.server.DaemonExpirationListenerRegistry)
+           registry.register(new DaemonExpirationListener() {
+                @Override
+                public void onExpirationEvent(org.gradle.launcher.daemon.server.DaemonExpirationResult result) {
+                    println "onExpirationEvent fired with: \${result.getReason()}"
+                }
+            });
+
+            task delay {
+                doFirst{
+                 sleep(1000)
+                }
+            }
+        """
+        when:
+        run("delay")
+
+        then:
+        outputContains('onExpirationEvent fired with: expiring daemon with TestExpirationStrategy')
+
     }
 }

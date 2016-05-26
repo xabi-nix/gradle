@@ -206,11 +206,15 @@ public class Daemon implements Stoppable {
     public void stopOnExpiration(DaemonExpirationStrategy expirationStrategy, int checkIntervalMills) {
         LOGGER.debug("stopOnExpiration() called on daemon");
 
+        scheduleExpirationChecks(expirationStrategy, checkIntervalMills);
+
+        awaitExpiration();
+    }
+
+    private void scheduleExpirationChecks(DaemonExpirationStrategy expirationStrategy, int checkIntervalMills) {
         DaemonExpirationPeriodicCheck periodicCheck = new DaemonExpirationPeriodicCheck(this, expirationStrategy, listenerManager);
         listenerManager.addListener(new DefaultDaemonExpirationListener(stateCoordinator, registryUpdater));
         scheduledExecutorService.scheduleAtFixedRate(periodicCheck, checkIntervalMills, checkIntervalMills, TimeUnit.MILLISECONDS);
-
-        awaitExpiration();
     }
 
     /**
