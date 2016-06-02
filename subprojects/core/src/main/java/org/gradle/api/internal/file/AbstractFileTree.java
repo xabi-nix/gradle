@@ -47,9 +47,16 @@ public abstract class AbstractFileTree extends AbstractFileCollection implements
     public boolean isEmpty() {
         final AtomicBoolean found = new AtomicBoolean();
         visit(new EmptyFileVisitor() {
+            @Override
             public void visitFile(FileVisitDetails fileDetails) {
                 found.set(true);
                 fileDetails.stopVisiting();
+            }
+
+            @Override
+            public void visitDir(FileVisitDetails dirDetails) {
+                found.set(true);
+                dirDetails.stopVisiting();
             }
         });
         return !found.get();
